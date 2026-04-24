@@ -1,5 +1,10 @@
 # FoodTracker-frontend
 
+## Projektbeschreibung
+FoodTracker ist eine Webanwendung zur Verwaltung von Lebensmitteln und Nährwerten. Dieses Frontend zeigt eine Liste von Produkten mit Kalorien, Protein und Kohlenhydraten an
+
+## Teammitglieder: Dalia Salman, Beril Gümüs
+
 This template should help get you started developing with Vue 3 in Vite.
 
 ## Recommended IDE Setup
