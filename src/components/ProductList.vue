@@ -17,13 +17,14 @@ export default {
   name: 'ProductList',
   data() {
     return {
-      products: []  // <-- LEER, wird vom Backend gefüllt
+      products: []
     }
   },
   async mounted() {
     try {
-// DEIN BACKEND AUFRUFEN!
-      const response = await fetch('https://foodtracker-backend-1.onrender.com/products');
+      // So wird die Umgebungsvariable genutzt!
+      const apiUrl = import.meta.env.VITE_API_URL;
+      const response = await fetch(`${apiUrl}/products`);
       this.products = await response.json();
     } catch (error) {
       console.error('Fehler beim Laden:', error);
