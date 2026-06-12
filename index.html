@@ -1,29 +1,12 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-    <meta charset="UTF-8">
-    <title>FoodTracker - Meine Produkte</title>
-    <style>
-        body { font-family: Arial; max-width: 600px; margin: 0 auto; padding: 20px; }
-        li { background: #f5f5f5; margin: 10px 0; padding: 12px; border-radius: 8px; }
-    </style>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>FoodTracker</title>
 </head>
 <body>
-<h1>🍽️ FoodTracker - Meine Produkte</h1>
-<div id="content">Lade Produkte...</div>
-
-<script>
-    const API_URL = 'https://foodtracker-backend-1.onrender.com/products';
-
-    fetch(API_URL)
-        .then(res => res.json())
-        .then(products => {
-            const html = '<ul>' + products.map(p =>
-                `<li><strong>${p.name}</strong> - ${p.calories} kcal</li>`
-            ).join('') + '</ul>';
-            document.getElementById('content').innerHTML = html;
-        })
-        .catch(() => document.getElementById('content').innerHTML = '<p>Fehler</p>');
-</script>
+<div id="app"></div>
+<script type="module" src="/src/main.ts"></script>
 </body>
 </html>
