@@ -1,24 +1,22 @@
 <template>
   <div id="app">
-    <h1>🍽️ FoodTracker</h1>
+    <!-- Hier wird deine Komponente geladen und angezeigt -->
     <ProductList />
   </div>
 </template>
 
-<script>
+<script setup>
 import ProductList from './components/ProductList.vue'
-
-export default {
-  name: 'App',
-  components: {
-    ProductList
-  }
-}
 </script>
 
 <style>
+/* Globales, einfaches Styling */
 #app {
+  font-family: Avenir, Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
   text-align: center;
-  font-family: Arial, sans-serif;
+  color: #2c3e50;
+  margin-top: 60px;
 }
 </style>
