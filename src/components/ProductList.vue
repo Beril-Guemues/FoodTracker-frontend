@@ -45,7 +45,6 @@ const baseUrl = rawBaseUrl.endsWith('/') ? rawBaseUrl : `${rawBaseUrl}/`
 // 3. Daten live vom RENDER-BACKEND laden (GET)
 const loadProducts = async () => {
   try {
-    // Verbindet die bereinigte URL direkt mit "products" -> kein Doppel-Slash mehr!
     const response = await fetch(`${baseUrl}products`)
     if (response.ok) {
       products.value = await response.json()
@@ -76,4 +75,72 @@ const saveProduct = async () => {
       alert('Fehler beim Speichern im Backend.')
     }
   } catch (error) {
-    console.
+    console.error('Verbindungsfehler:', error)
+  }
+}
+
+onMounted(() => {
+  loadProducts()
+})
+</script>
+
+<style scoped>
+.product-list-container {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 20px;
+  font-family: sans-serif;
+}
+.form-container {
+  background: #f9f9f9;
+  border: 1px solid #ddd;
+  padding: 15px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  text-align: left;
+}
+.form-group {
+  margin-bottom: 10px;
+}
+label {
+  display: block;
+  font-weight: bold;
+  margin-bottom: 5px;
+}
+input {
+  width: 100%;
+  padding: 8px;
+  box-sizing: border-box;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+.btn-submit {
+  background-color: #218838;
+  color: white;
+  padding: 10px 15px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: bold;
+  width: 100%;
+  margin-top: 10px;
+}
+.btn-submit:hover {
+  background-color: #1e7e34;
+}
+ul {
+  list-style: none;
+  padding: 0;
+}
+li {
+  background: #f5f5f5;
+  margin: 10px 0;
+  padding: 12px;
+  border-radius: 8px;
+  text-align: left;
+}
+.empty-message {
+  color: #777;
+  font-style: italic;
+}
+</style>
