@@ -36,22 +36,27 @@ const newProduct = ref({
   calories: 0
 })
 
-// 1. Daten live vom RENDER-BACKEND laden (GET)
+// Dynamische URL aus den Render Environment Variables ziehen
+const baseUrl = import.meta.env.VITE_API_BASE_URL
+
+// 1. Daten live über die Umgebungsvariable laden (GET)
 const loadProducts = async () => {
   try {
-    const response = await fetch('https://foodtracker-backend-1.onrender.com/products')
+    const response = await fetch(`${baseUrl}/products`)
     if (response.ok) {
       products.value = await response.json()
+    } else {
+      console.error('Server antwortete mit Fehler:', response.status)
     }
   } catch (error) {
-    console.error('Fehler beim Laden:', error)
+    console.error('Fehler beim Laden von der API:', error)
   }
 }
 
-// 2. Neues Produkt an das RENDER-BACKEND schicken (POST)
+// 2. Neues Produkt an die API schicken (POST)
 const saveProduct = async () => {
   try {
-    const response = await fetch('https://foodtracker-backend-1.onrender.com/products', {
+    const response = await fetch(`${baseUrl}/products`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
