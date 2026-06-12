@@ -1,19 +1,30 @@
 <template>
   <div id="app">
-    <RouterView />
+    <header>
+      <h1>🍽️ FoodTracker - Meine Produkte</h1>
+    </header>
+    <main>
+      <!-- Hier wird deine neue Produktliste aufgerufen -->
+      <ProductList />
+    </main>
   </div>
 </template>
 
 <script setup>
-import { RouterView } from 'vue-router'
+// Hier importieren wir die Komponente, die wir gerade gebaut haben
+import ProductList from './components/ProductList.vue'
 </script>
 
 <style>
-/* Hier kannst du optional Styles für die gesamte App reinpacken */
-body {
-  font-family: Arial, sans-serif;
-  margin: 0;
-  padding: 20px;
-  background-color: #ffffff;
+#app {
+  font-family: Avenir, Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-align: center;
+  color: #2c3e50;
+  margin-top: 60px;
+}
+header {
+  margin-bottom: 30px;
 }
 </style>
