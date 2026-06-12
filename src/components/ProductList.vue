@@ -17,6 +17,7 @@
       </form>
     </div>
 
+    <h2>🍽️ Meine Produkte</h2>
     <ul v-if="products.length > 0">
       <li v-for="product in products" :key="product.id">
         <strong>{{ product.name }}</strong> - {{ product.calories }} kcal
@@ -35,7 +36,7 @@ const newProduct = ref({
   calories: 0
 })
 
-// 1. Daten live vom Backend laden (GET)
+// 1. Daten live vom RENDER-BACKEND laden (GET)
 const loadProducts = async () => {
   try {
     const response = await fetch('https://foodtracker-backend-1.onrender.com/products')
@@ -47,7 +48,7 @@ const loadProducts = async () => {
   }
 }
 
-// 2. Neues Produkt ans Backend schicken (POST)
+// 2. Neues Produkt an das RENDER-BACKEND schicken (POST)
 const saveProduct = async () => {
   try {
     const response = await fetch('https://foodtracker-backend-1.onrender.com/products', {
