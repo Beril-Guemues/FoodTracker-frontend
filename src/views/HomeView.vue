@@ -5,5 +5,5 @@
 </template>
 
 <script setup>
-import ProductList from '../components/ProductList.vue'
+import ProductList from '@/components/lists/ProductList.vue'
 </script>

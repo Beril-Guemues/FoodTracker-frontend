@@ -1,10 +1,10 @@
 <template>
   <div id="app">
-    <h1>🍽️ FoodTracker - Meine Produkte</h1>
+    <h1>FoodTracker - Meine Produkte</h1>
     <RouterView />
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { RouterView } from 'vue-router'
 </script>
