@@ -157,7 +157,7 @@ async function handleLogin() {
   errorMessage.value = ''
   isLoading.value = true
 
-  await new Promise((resolve) => setTimeout(resolve, 500))
+  await new Promise(resolve => setTimeout(resolve, 500))
 
   if (email.value === VALID_EMAIL && password.value === VALID_PASSWORD) {
     localStorage.setItem('user', JSON.stringify({ id: 1, email: email.value }))
@@ -186,7 +186,7 @@ async function handleRegister() {
   }
 
   isRegistering.value = true
-  await new Promise((resolve) => setTimeout(resolve, 500))
+  await new Promise(resolve => setTimeout(resolve, 500))
 
   registerSuccess.value = 'Registrierung erfolgreich! Bitte anmelden.'
   registerEmail.value = ''
