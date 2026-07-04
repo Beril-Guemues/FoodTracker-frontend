@@ -2,12 +2,7 @@
   <form class="customfood-form" @submit.prevent="submitProduct">
     <h2>Eigenes Lebensmittel eintragen</h2>
 
-    <FormField
-      id="name"
-      label="Name des Lebensmittels"
-      type="text"
-      v-model="name"
-    />
+    <FormField id="name" label="Name des Lebensmittels" type="text" v-model="name" />
 
     <FormField
       id="calories"
@@ -47,8 +42,7 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
-import FormField from '@/components/FormField.vue'
-
+import FormField from '@/components/form/FormField.vue'
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8080'
 
 const name = ref<string>('')
@@ -93,8 +87,7 @@ async function submitProduct() {
     protein.value = null
     carbs.value = null
   } catch (err) {
-    errorMessage.value =
-      err instanceof Error ? err.message : 'Unbekannter Fehler beim Speichern.'
+    errorMessage.value = err instanceof Error ? err.message : 'Unbekannter Fehler beim Speichern.'
   } finally {
     isSubmitting.value = false
   }

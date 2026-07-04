@@ -1,8 +1,8 @@
 <template>
-  <div class="product-list-container">
+  <div class="Lebensmittel-list-container">
     <!-- ===== PRODUKTSUCHE ===== -->
     <div class="form-container">
-      <h3>Produkt suchen</h3>
+      <h3>Lebensmittel suchen</h3>
 
       <div class="search-group">
         <input
@@ -31,8 +31,11 @@
       </div>
 
       <!-- Keine Ergebnisse → OpenFoodFacts -->
-      <div v-if="searchQuery && searchResults.length === 0 && !isSearching && !offResults.length" class="no-results">
-        <p>Kein Produkt in deiner Datenbank gefunden.</p>
+      <div
+        v-if="searchQuery && searchResults.length === 0 && !isSearching && !offResults.length"
+        class="no-results"
+      >
+        <p>Kein Lebensmittel in deiner Datenbank gefunden.</p>
         <button @click="searchOpenFoodFacts" class="btn-off">In OpenFoodFacts suchen</button>
       </div>
 
@@ -47,7 +50,7 @@
         >
           <span class="product-name">{{ result.product_name }}</span>
           <span class="product-calories" v-if="result.nutriments">
-            {{ Math.round(result.nutriments['energy-kcal_100g']) }} kcal / 100g
+            {{ Math.round(result.nutriments['energy-kcal_100g'] ?? 0) }} kcal / 100g
           </span>
         </div>
       </div>
@@ -55,10 +58,10 @@
 
     <!-- ===== AUSGEWÄHLTES PRODUKT ===== -->
     <div v-if="selectedProduct" class="selected-product">
-      <h3>Produkt hinzufügen</h3>
+      <h3>Lebensmittel hinzufügen</h3>
 
       <div class="form-group">
-        <label>Produktname</label>
+        <label>Name des Lebensmittels</label>
         <input v-model="selectedProduct.name" type="text" />
       </div>
 
@@ -84,9 +87,9 @@
     </div>
 
     <!-- ===== MEINE PRODUKTE ===== -->
-    <h2>Meine Produkte</h2>
+    <h2>Meine Lebensmittel</h2>
 
-    <div v-if="isLoading" class="hint">Lade Produkte...</div>
+    <div v-if="isLoading" class="hint">Lade Lebensmittel...</div>
 
     <ul v-if="!isLoading && products.length > 0">
       <li v-for="product in products" :key="product.id">
@@ -99,7 +102,7 @@
     </ul>
 
     <p v-if="!isLoading && products.length === 0" class="empty-message">
-      Keine Produkte gespeichert.
+      Keine Lebensmittel gespeichert.
     </p>
 
     <p v-if="errorMessage" class="error">{{ errorMessage }}</p>
@@ -126,8 +129,8 @@ interface OffProduct {
   product_name: string
   nutriments?: {
     'energy-kcal_100g'?: number
-    'proteins_100g'?: number
-    'carbohydrates_100g'?: number
+    proteins_100g?: number
+    carbohydrates_100g?: number
   }
 }
 
@@ -152,7 +155,7 @@ async function loadProducts() {
     if (!response.ok) throw new Error('Fehler beim Laden')
     products.value = await response.json()
   } catch {
-    errorMessage.value = 'Produkte konnten nicht geladen werden.'
+    errorMessage.value = 'Lebensmittel konnten nicht geladen werden.'
     products.value = []
   } finally {
     isLoading.value = false
@@ -173,7 +176,7 @@ async function searchProducts() {
 
   try {
     const response = await fetch(
-      `${API_URL}/products/search?q=${encodeURIComponent(searchQuery.value)}`
+      `${API_URL}/products/search?q=${encodeURIComponent(searchQuery.value)}`,
     )
     if (!response.ok) throw new Error('Suche fehlgeschlagen')
     searchResults.value = await response.json()
@@ -192,12 +195,10 @@ async function searchOpenFoodFacts() {
 
   try {
     const response = await fetch(
-      `https://de.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(searchQuery.value)}&search_simple=1&action=process&json=1&page_size=5`
+      `https://de.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(searchQuery.value)}&search_simple=1&action=process&json=1&page_size=5`,
     )
     const data = await response.json()
-    offResults.value = data.products.filter(
-      (p: OffProduct) => p.product_name && p.nutriments
-    )
+    offResults.value = data.products.filter((p: OffProduct) => p.product_name && p.nutriments)
   } catch {
     errorMessage.value = 'OpenFoodFacts-Suche fehlgeschlagen.'
     offResults.value = []
@@ -250,7 +251,7 @@ async function saveProduct() {
 
     if (!response.ok) throw new Error('Fehler beim Speichern')
 
-    successMessage.value = 'Produkt gespeichert!'
+    successMessage.value = 'Lebensmittel gespeichert!'
     selectedProduct.value = null
     await loadProducts()
 
@@ -266,7 +267,7 @@ async function saveProduct() {
 
 // ===== PRODUKT LÖSCHEN =====
 async function deleteProduct(id: number) {
-  if (!confirm('Produkt wirklich löschen?')) return
+  if (!confirm('Lebensmittel wirklich löschen?')) return
 
   isLoading.value = true
 
@@ -304,7 +305,6 @@ onMounted(() => {
   padding: 20px;
 }
 
-/* ===== FORMULAR ===== */
 .form-container {
   background: #f8fafc;
   border: 1px solid #eef2f6;
@@ -315,7 +315,7 @@ onMounted(() => {
 
 .form-container h3 {
   margin-bottom: 16px;
-  color: #1a1a2e;
+  color: var(--color-heading);
 }
 
 .search-group {
@@ -333,12 +333,12 @@ onMounted(() => {
 
 .search-group input:focus {
   outline: none;
-  border-color: #42b883;
+  border-color: var(--color-primary);
 }
 
 .btn-search {
   padding: 10px 24px;
-  background: #42b883;
+  background: var(--color-primary);
   color: white;
   border: none;
   border-radius: 8px;
@@ -348,17 +348,17 @@ onMounted(() => {
 }
 
 .btn-search:hover {
-  background: #35a372;
+  background: var(--color-primary-hover);
 }
 
 .btn-search:disabled {
-  background: #a0d9c1;
+  background: #a0a0a0;
   cursor: not-allowed;
 }
 
 .btn-off {
   padding: 8px 20px;
-  background: #6c757d;
+  background: #000000;
   color: white;
   border: none;
   border-radius: 8px;
@@ -368,10 +368,9 @@ onMounted(() => {
 }
 
 .btn-off:hover {
-  background: #5a6268;
+  background: #333333;
 }
 
-/* ===== SEARCH RESULTS ===== */
 .search-results {
   margin-top: 12px;
   max-height: 200px;
@@ -391,7 +390,7 @@ onMounted(() => {
 }
 
 .result-item:hover {
-  border-color: #42b883;
+  border-color: var(--color-primary);
   background: #f0faf5;
 }
 
@@ -410,10 +409,9 @@ onMounted(() => {
   color: #888;
 }
 
-/* ===== SELECTED PRODUCT ===== */
 .selected-product {
   background: #e8f5ef;
-  border: 2px solid #42b883;
+  border: 2px solid var(--color-primary);
   border-radius: 12px;
   padding: 20px;
   margin-bottom: 24px;
@@ -421,7 +419,7 @@ onMounted(() => {
 
 .selected-product h3 {
   margin-bottom: 16px;
-  color: #1a1a2e;
+  color: var(--color-heading);
 }
 
 .form-group {
@@ -447,7 +445,7 @@ onMounted(() => {
 
 .form-group input:focus {
   outline: none;
-  border-color: #42b883;
+  border-color: var(--color-primary);
 }
 
 .form-row {
@@ -459,7 +457,7 @@ onMounted(() => {
 .btn-save {
   width: 100%;
   padding: 12px;
-  background: #42b883;
+  background: var(--color-primary);
   color: white;
   border: none;
   border-radius: 8px;
@@ -471,13 +469,13 @@ onMounted(() => {
 }
 
 .btn-save:hover {
-  background: #35a372;
+  background: var(--color-primary-hover);
 }
 
 .btn-cancel {
   width: 100%;
   padding: 10px;
-  background: #dc3545;
+  background: #000000;
   color: white;
   border: none;
   border-radius: 8px;
@@ -489,10 +487,9 @@ onMounted(() => {
 }
 
 .btn-cancel:hover {
-  background: #c82333;
+  background: #333333;
 }
 
-/* ===== PRODUCT LIST ===== */
 ul {
   list-style: none;
   padding: 0;
@@ -521,7 +518,7 @@ li span {
 }
 
 .btn-delete {
-  background: #dc3545;
+  background: #000000;
   color: white;
   border: none;
   border-radius: 6px;
@@ -531,7 +528,7 @@ li span {
 }
 
 .btn-delete:hover {
-  background: #c82333;
+  background: #333333;
 }
 
 .empty-message {

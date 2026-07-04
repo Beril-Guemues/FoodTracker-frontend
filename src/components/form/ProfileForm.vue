@@ -1,6 +1,6 @@
 <template>
   <div class="profile-form-container">
-    <h2>👤 Profil einrichten</h2>
+    <h2> Profil einrichten</h2>
     <p>Deine persönlichen Daten für genaue Berechnungen</p>
 
     <form @submit.prevent="saveProfile">

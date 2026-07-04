@@ -1,13 +1,13 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import HomeView from '../views/HomeView.vue'
-import ProductList from '@/components/ProductList.vue'
-import FoodEntryForm from '@/components/FoodEntryForm.vue'
-import ProfileForm from '@/components/ProfileForm.vue'      // ← Vorhanden?
-import GoalForm from '@/components/GoalForm.vue'
-import ProgressChart from '@/components/ProgressChart.vue'
-import NutritionSummary from '@/components/NutritionSummary.vue'
-import CustomFoodForm from '@/components/CustomFoodForm.vue'
-import Login from '@/components/Login.vue'                  // ← Wichtig!
+import ProductList from '@/components/lists/ProductList.vue'
+import FoodEntryForm from '@/components/form/FoodEntryForm.vue'
+import ProfileForm from '@/components/form/ProfileForm.vue'
+import GoalForm from '@/components/form/GoalForm.vue'
+import ProgressChart from '@/components/charts/ProgressChart.vue'
+import NutritionSummary from '@/components/charts/NutritionSummary.vue'
+import CustomFoodForm from '@/components/form/CustomFoodForm.vue'
+import LoginView from '@/components/LoginView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -15,7 +15,7 @@ const router = createRouter({
     {
       path: '/login',
       name: 'login',
-      component: Login,
+      component: LoginView,
       meta: { requiresAuth: false },
     },
     {
@@ -39,7 +39,7 @@ const router = createRouter({
     {
       path: '/profile',
       name: 'profile',
-      component: ProfileForm,          // ← MUSS existieren!
+      component: ProfileForm,
       meta: { requiresAuth: true },
     },
     {

@@ -4,16 +4,12 @@
     <section class="hero-section">
       <div class="hero-content">
         <div class="hero-text">
-          <span class="badge">🍽️ FoodTracker</span>
-          <h1>Dein persönlicher<br><span class="highlight">Ernährungs-Tracker</span></h1>
+          <span class="badge">FoodTracker</span>
+          <h1>Dein persönlicher<br /><span class="highlight">Ernährungs-Tracker</span></h1>
           <p>Tracke deine Mahlzeiten, erreiche deine Ziele und fühle dich großartig.</p>
           <div class="hero-buttons">
-            <router-link to="/foodentry" class="btn-primary">
-              Heute tracken
-            </router-link>
-            <router-link to="/profile" class="btn-secondary">
-              Profil einrichten
-            </router-link>
+            <router-link to="/foodentry" class="btn-primary"> Heute tracken </router-link>
+            <router-link to="/profile" class="btn-secondary"> Profil einrichten </router-link>
           </div>
         </div>
         <div class="hero-image">
@@ -42,42 +38,36 @@
 
       <div class="features-grid">
         <div class="feature-card" @click="navigateTo('/products')">
-          <div class="feature-icon">📦</div>
-          <h3>Produkte suchen</h3>
+          <h3>Lebensmittel suchen und tracken</h3>
           <p>Finde Lebensmittel in unserer Datenbank</p>
           <span class="feature-link">→</span>
         </div>
 
         <div class="feature-card" @click="navigateTo('/foodentry')">
-          <div class="feature-icon">📝</div>
-          <h3>Mahlzeit tracken</h3>
+          <h3>eigene Mahlzeit tracken</h3>
           <p>Erfasse was du isst mit wenigen Klicks</p>
           <span class="feature-link">→</span>
         </div>
 
         <div class="feature-card" @click="navigateTo('/profile')">
-          <div class="feature-icon">👤</div>
           <h3>Dein Profil</h3>
           <p>Persönliche Daten für genaue Berechnungen</p>
           <span class="feature-link">→</span>
         </div>
 
         <div class="feature-card" @click="navigateTo('/goal')">
-          <div class="feature-icon">🎯</div>
           <h3>Ziele setzen</h3>
           <p>Abnehmen, Zunehmen oder Muskeln aufbauen</p>
           <span class="feature-link">→</span>
         </div>
 
         <div class="feature-card" @click="navigateTo('/nutrition')">
-          <div class="feature-icon">💧</div>
           <h3>Nährwerte</h3>
           <p>Kalorienbedarf & Wasserempfehlung</p>
           <span class="feature-link">→</span>
         </div>
 
         <div class="feature-card" @click="navigateTo('/progress')">
-          <div class="feature-icon">📊</div>
           <h3>Fortschritt</h3>
           <p>Deine Erfolge im Überblick</p>
           <span class="feature-link">→</span>
@@ -129,11 +119,13 @@ const loadDailyStats = async () => {
 
     // Heutige Einträge filtern
     const today = new Date().toISOString().split('T')[0]
-    const todayEntries = entries.filter(e => e.date === today)
+    const todayEntries = entries.filter((e) => e.date === today)
 
     // Summen berechnen
-    let calories = 0, protein = 0, carbs = 0
-    todayEntries.forEach(entry => {
+    let calories = 0,
+      protein = 0,
+      carbs = 0
+    todayEntries.forEach((entry) => {
       const factor = entry.amount / 100
       calories += factor * (entry.product?.calories || 0)
       protein += factor * (entry.product?.protein || 0)
@@ -340,11 +332,6 @@ onMounted(() => {
   transform: translateY(-6px);
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.08);
   border-color: #42b883;
-}
-
-.feature-icon {
-  font-size: 2rem;
-  margin-bottom: 12px;
 }
 
 .feature-card h3 {

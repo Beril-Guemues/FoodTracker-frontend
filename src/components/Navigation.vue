@@ -4,7 +4,7 @@
       <router-link to="/" class="nav-brand">FoodTracker</router-link>
 
       <div class="nav-links">
-        <router-link to="/products" class="nav-link">Produkte</router-link>
+        <router-link to="/products" class="nav-link">Lebensmittel</router-link>
         <router-link to="/foodentry" class="nav-link">Mahlzeiten</router-link>
         <router-link to="/profile" class="nav-link">Profil</router-link>
         <router-link to="/goal" class="nav-link">Ziel</router-link>

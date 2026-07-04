@@ -1,7 +1,9 @@
 <template>
   <div class="food-entry-container">
-    <h2>📝 Mahlzeit eintragen</h2>
-    <p>Wähle ein Produkt aus und gib die Menge ein.</p>
+    <div class="page-header">
+      <h2>Eigene Mahlzeit</h2>
+      <p>Wähle ein Produkt aus und gib die Menge ein.</p>
+    </div>
 
     <!-- ===== PRODUKTSUCHE ===== -->
     <div class="search-section">
@@ -12,7 +14,7 @@
           placeholder="Produkt suchen..."
           @input="searchProducts"
         />
-        <button @click="searchProducts" class="btn-search">🔍 Suchen</button>
+        <button @click="searchProducts" class="btn-search">Suchen</button>
       </div>
 
       <!-- Suchergebnisse -->
@@ -31,9 +33,7 @@
       <!-- Keine Ergebnisse -->
       <div v-if="searchQuery && searchResults.length === 0 && !isSearching" class="no-results">
         <p>Kein Produkt gefunden.</p>
-        <router-link to="/custom-food" class="btn-add">
-          ➕ Eigenes Lebensmittel anlegen
-        </router-link>
+        <router-link to="/custom-food" class="btn-add"> Eigenes Lebensmittel anlegen </router-link>
       </div>
     </div>
 
@@ -52,29 +52,19 @@
         <div class="form-row">
           <div class="form-group">
             <label>Menge (g)</label>
-            <input
-              v-model.number="amount"
-              type="number"
-              placeholder="z.B. 150"
-              min="1"
-              required
-            />
+            <input v-model.number="amount" type="number" placeholder="z.B. 150" min="1" required />
           </div>
 
           <div class="form-group">
             <label>Datum</label>
-            <input
-              v-model="date"
-              type="date"
-              required
-            />
+            <input v-model="date" type="date" required />
           </div>
         </div>
 
         <div class="calculated-values">
-          <span>🔥 {{ calculatedCalories }} kcal</span>
-          <span>💪 {{ calculatedProtein }} g Protein</span>
-          <span>🍞 {{ calculatedCarbs }} g Carbs</span>
+          <span>{{ calculatedCalories }} kcal</span>
+          <span>{{ calculatedProtein }} g Protein</span>
+          <span>{{ calculatedCarbs }} g Carbs</span>
         </div>
 
         <button @click="saveEntry" :disabled="!amount || amount <= 0" class="btn-save">
@@ -96,11 +86,11 @@
           <span class="entry-name">{{ entry.product.name }}</span>
           <span class="entry-amount">{{ entry.amount }} g</span>
           <span class="entry-calories">{{ calculateEntryCalories(entry) }} kcal</span>
-          <button @click="deleteEntry(entry.id)" class="btn-delete">✕</button>
+          <button @click="deleteEntry(entry.id)" class="btn-delete">X</button>
         </div>
 
         <div class="daily-total">
-          <span>📊 Heute insgesamt:</span>
+          <span>Heute insgesamt:</span>
           <span>{{ dailyTotalCalories }} kcal</span>
           <span>{{ dailyTotalProtein }} g Protein</span>
           <span>{{ dailyTotalCarbs }} g Carbs</span>
@@ -138,7 +128,7 @@ const searchResults = ref<Product[]>([])
 const isSearching = ref(false)
 const selectedProduct = ref<Product | null>(null)
 const amount = ref<number | null>(null)
-const date = ref(new Date().toISOString().split('T')[0])
+const date = ref<string>(new Date().toISOString().split('T')[0] ?? '')
 const entries = ref<FoodEntry[]>([])
 const errorMessage = ref('')
 const successMessage = ref('')
@@ -161,9 +151,7 @@ function searchProducts() {
   const allProducts = getProducts()
   const query = searchQuery.value.toLowerCase().trim()
 
-  searchResults.value = allProducts.filter(p =>
-    p.name.toLowerCase().includes(query)
-  )
+  searchResults.value = allProducts.filter((p) => p.name.toLowerCase().includes(query))
 
   isSearching.value = false
 }
@@ -184,12 +172,12 @@ const calculatedCalories = computed(() => {
 
 const calculatedProtein = computed(() => {
   if (!selectedProduct.value || !amount.value) return 0
-  return Math.round(((amount.value / 100) * selectedProduct.value.protein) * 10) / 10
+  return Math.round((amount.value / 100) * selectedProduct.value.protein * 10) / 10
 })
 
 const calculatedCarbs = computed(() => {
   if (!selectedProduct.value || !amount.value) return 0
-  return Math.round(((amount.value / 100) * selectedProduct.value.carbs) * 10) / 10
+  return Math.round((amount.value / 100) * selectedProduct.value.carbs * 10) / 10
 })
 
 // ===== ENTRIES =====
@@ -205,7 +193,7 @@ const saveEntries = (data: FoodEntry[]) => {
 
 // ===== TODAY'S ENTRIES =====
 const todayEntries = computed(() => {
-  return entries.value.filter(e => e.date === date.value)
+  return entries.value.filter((e) => e.date === date.value)
 })
 
 const dailyTotalCalories = computed(() => {
@@ -216,13 +204,13 @@ const dailyTotalCalories = computed(() => {
 
 const dailyTotalProtein = computed(() => {
   return todayEntries.value.reduce((sum, e) => {
-    return sum + Math.round(((e.amount / 100) * e.product.protein) * 10) / 10
+    return sum + Math.round((e.amount / 100) * e.product.protein * 10) / 10
   }, 0)
 })
 
 const dailyTotalCarbs = computed(() => {
   return todayEntries.value.reduce((sum, e) => {
-    return sum + Math.round(((e.amount / 100) * e.product.carbs) * 10) / 10
+    return sum + Math.round((e.amount / 100) * e.product.carbs * 10) / 10
   }, 0)
 })
 
@@ -236,7 +224,7 @@ async function saveEntry() {
   successMessage.value = ''
 
   if (!selectedProduct.value || !amount.value || amount.value <= 0) {
-    errorMessage.value = '❌ Bitte Produkt und Menge angeben.'
+    errorMessage.value = 'Bitte Produkt und Menge angeben.'
     return
   }
 
@@ -251,7 +239,7 @@ async function saveEntry() {
   allEntries.push(newEntry)
   saveEntries(allEntries)
 
-  successMessage.value = '✅ Eintrag erfolgreich gespeichert!'
+  successMessage.value = 'Eintrag erfolgreich gespeichert!'
   selectedProduct.value = null
   amount.value = null
 
@@ -263,7 +251,7 @@ async function saveEntry() {
 // ===== DELETE ENTRY =====
 function deleteEntry(id: number) {
   const allEntries = getEntries()
-  const filtered = allEntries.filter(e => e.id !== id)
+  const filtered = allEntries.filter((e) => e.id !== id)
   saveEntries(filtered)
 }
 
@@ -274,7 +262,7 @@ onMounted(() => {
   // Maximale ID finden
   const allEntries = getEntries()
   if (allEntries.length > 0) {
-    nextEntryId = Math.max(...allEntries.map(e => e.id)) + 1
+    nextEntryId = Math.max(...allEntries.map((e) => e.id)) + 1
   }
 })
 
@@ -288,28 +276,35 @@ watch(date, () => {
 .food-entry-container {
   max-width: 800px;
   margin: 0 auto;
-  padding: 20px;
+  padding: 40px 20px 64px;
+}
+
+.page-header {
+  text-align: center;
+  margin-bottom: 32px;
 }
 
 h2 {
-  font-size: 2rem;
-  font-weight: 700;
+  font-size: 2.4rem;
+  font-weight: 800;
   color: #1a1a2e;
-  margin-bottom: 4px;
+  margin-bottom: 8px;
+  letter-spacing: -0.5px;
 }
 
-.food-entry-container > p {
+.page-header p {
   color: #888;
-  margin-bottom: 24px;
+  font-size: 1.05rem;
 }
 
 /* ===== SEARCH ===== */
 .search-section {
-  background: #f8fafc;
-  border-radius: 12px;
-  padding: 20px;
-  border: 1px solid #eef2f6;
-  margin-bottom: 24px;
+  background: white;
+  border-radius: 18px;
+  padding: 24px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.05);
+  border: 1px solid #f0f2f5;
+  margin-bottom: 28px;
 }
 
 .search-group {
@@ -319,52 +314,59 @@ h2 {
 
 .search-group input {
   flex: 1;
-  padding: 10px 14px;
-  border: 2px solid #e0e0e0;
-  border-radius: 8px;
+  padding: 12px 16px;
+  border: 2px solid #e8ecf0;
+  border-radius: 12px;
   font-size: 1rem;
+  background: #fafbfc;
+  transition: all 0.2s ease;
 }
 
 .search-group input:focus {
   outline: none;
   border-color: #42b883;
+  background: white;
+  box-shadow: 0 0 0 4px rgba(66, 184, 131, 0.1);
 }
 
 .btn-search {
-  padding: 10px 20px;
-  background: #42b883;
+  padding: 12px 24px;
+  background: #1b4332;
   color: white;
   border: none;
-  border-radius: 8px;
+  border-radius: 12px;
   cursor: pointer;
   font-weight: 600;
+  transition: all 0.2s ease;
 }
 
 .btn-search:hover {
-  background: #35a372;
+  background: #2d6a4f;
+  transform: translateY(-1px);
 }
 
 .search-results {
-  margin-top: 12px;
-  max-height: 200px;
+  margin-top: 14px;
+  max-height: 220px;
   overflow-y: auto;
 }
 
 .result-item {
-  padding: 10px 14px;
-  background: white;
+  padding: 12px 16px;
+  background: #fafbfc;
   border: 1px solid #eef2f6;
-  border-radius: 8px;
-  margin-bottom: 6px;
+  border-radius: 10px;
+  margin-bottom: 8px;
   cursor: pointer;
   display: flex;
   justify-content: space-between;
-  transition: all 0.2s;
+  transition: all 0.2s ease;
 }
 
 .result-item:hover {
   border-color: #42b883;
   background: #f0faf5;
+  transform: translateY(-1px);
 }
 
 .product-name {
@@ -378,44 +380,49 @@ h2 {
 
 .no-results {
   text-align: center;
-  padding: 16px;
+  padding: 20px;
   color: #888;
 }
 
 .btn-add {
   display: inline-block;
-  padding: 8px 16px;
-  background: #6c757d;
+  padding: 10px 20px;
+  background: #1a1a2e;
   color: white;
-  border-radius: 8px;
+  border-radius: 10px;
   text-decoration: none;
-  margin-top: 8px;
+  margin-top: 10px;
   font-weight: 600;
+  transition: all 0.2s ease;
 }
 
 .btn-add:hover {
-  background: #5a6268;
+  background: #000000;
+  transform: translateY(-1px);
 }
 
 /* ===== SELECTED PRODUCT ===== */
 .selected-product {
   background: #e8f5ef;
   border: 2px solid #42b883;
-  border-radius: 12px;
-  padding: 20px;
-  margin-bottom: 24px;
+  border-radius: 18px;
+  padding: 24px;
+  margin-bottom: 28px;
+  box-shadow: 0 4px 20px rgba(66, 184, 131, 0.1);
 }
 
 .selected-product h3 {
-  margin-bottom: 12px;
+  margin-bottom: 14px;
   color: #1a1a2e;
+  font-size: 1.15rem;
+  font-weight: 700;
 }
 
 .product-info {
   display: flex;
   flex-wrap: wrap;
   gap: 16px;
-  margin-bottom: 16px;
+  margin-bottom: 18px;
 }
 
 .product-nutrition {
@@ -426,13 +433,13 @@ h2 {
 .entry-form {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 14px;
 }
 
 .form-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 12px;
+  gap: 14px;
 }
 
 .form-group {
@@ -443,66 +450,80 @@ h2 {
 .form-group label {
   font-weight: 600;
   font-size: 0.9rem;
-  margin-bottom: 4px;
+  margin-bottom: 6px;
+  color: #333;
 }
 
 .form-group input {
-  padding: 10px 14px;
-  border: 2px solid #e0e0e0;
-  border-radius: 8px;
+  padding: 12px 16px;
+  border: 2px solid #e8ecf0;
+  border-radius: 10px;
   font-size: 1rem;
+  background: white;
+  transition: all 0.2s ease;
 }
 
 .form-group input:focus {
   outline: none;
   border-color: #42b883;
+  box-shadow: 0 0 0 4px rgba(66, 184, 131, 0.1);
 }
 
 .calculated-values {
   display: flex;
+  flex-wrap: wrap;
   gap: 20px;
-  padding: 10px 0;
+  padding: 14px 16px;
+  background: white;
+  border-radius: 12px;
   font-weight: 600;
   color: #1a1a2e;
 }
 
 .btn-save {
-  padding: 12px;
-  background: #42b883;
+  padding: 14px;
+  background: #1b4332;
   color: white;
   border: none;
-  border-radius: 8px;
-  font-size: 1rem;
-  font-weight: 600;
+  border-radius: 12px;
+  font-size: 1.05rem;
+  font-weight: 700;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 16px rgba(27, 67, 50, 0.25);
 }
 
-.btn-save:hover {
-  background: #35a372;
+.btn-save:hover:not(:disabled) {
+  background: #2d6a4f;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(27, 67, 50, 0.35);
 }
 
 .btn-save:disabled {
-  background: #a0d9c1;
+  background: #cfe0d6;
   cursor: not-allowed;
+  box-shadow: none;
 }
 
 /* ===== TODAY ENTRIES ===== */
 .today-entries {
   background: white;
-  border-radius: 12px;
-  padding: 20px;
-  border: 1px solid #eef2f6;
+  border-radius: 18px;
+  padding: 24px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.05);
+  border: 1px solid #f0f2f5;
 }
 
 .today-entries h3 {
-  margin-bottom: 16px;
+  margin-bottom: 18px;
   color: #1a1a2e;
+  font-size: 1.15rem;
+  font-weight: 700;
 }
 
 .empty-state {
   text-align: center;
-  padding: 20px;
+  padding: 24px;
   color: #888;
 }
 
@@ -510,10 +531,15 @@ h2 {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 10px 14px;
-  background: #f8fafc;
-  border-radius: 8px;
-  margin-bottom: 6px;
+  padding: 12px 16px;
+  background: #fafbfc;
+  border-radius: 10px;
+  margin-bottom: 8px;
+  transition: background 0.2s ease;
+}
+
+.entry-item:hover {
+  background: #f0faf5;
 }
 
 .entry-name {
@@ -527,29 +553,31 @@ h2 {
 
 .entry-calories {
   font-weight: 600;
-  color: #42b883;
+  color: #1b4332;
 }
 
 .btn-delete {
-  background: #dc3545;
+  background: #000000;
   color: white;
   border: none;
   border-radius: 50%;
-  width: 24px;
-  height: 24px;
+  width: 26px;
+  height: 26px;
   cursor: pointer;
   font-size: 12px;
+  transition: background 0.2s ease;
 }
 
 .btn-delete:hover {
-  background: #c82333;
+  background: #333333;
 }
 
 .daily-total {
-  margin-top: 12px;
-  padding-top: 12px;
+  margin-top: 14px;
+  padding-top: 14px;
   border-top: 2px solid #eef2f6;
   display: flex;
+  flex-wrap: wrap;
   gap: 20px;
   font-weight: 600;
   color: #1a1a2e;
@@ -557,15 +585,23 @@ h2 {
 
 /* ===== MESSAGES ===== */
 .success {
-  color: #28a745;
+  color: #1e7e34;
   text-align: center;
-  margin: 12px 0;
+  margin: 14px 0;
+  font-weight: 600;
+  padding: 12px;
+  background: #eaf7ee;
+  border-radius: 10px;
 }
 
 .error {
-  color: #dc3545;
+  color: #c0392b;
   text-align: center;
-  margin: 12px 0;
+  margin: 14px 0;
+  font-weight: 600;
+  padding: 12px;
+  background: #fdecea;
+  border-radius: 10px;
 }
 
 /* ===== RESPONSIVE ===== */
@@ -579,12 +615,15 @@ h2 {
   }
 
   .daily-total {
-    flex-wrap: wrap;
-    gap: 8px;
+    gap: 12px;
   }
 
   .calculated-values {
-    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  h2 {
+    font-size: 1.8rem;
   }
 }
 </style>

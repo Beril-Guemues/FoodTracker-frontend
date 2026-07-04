@@ -1,7 +1,9 @@
 <template>
   <div class="goal-container">
-    <h2>🎯 Dein Ziel</h2>
-    <p>Was möchtest du erreichen?</p>
+    <div class="goal-header">
+      <h2>Dein Ziel</h2>
+      <p>Was möchtest du erreichen?</p>
+    </div>
 
     <form @submit.prevent="saveGoal">
       <!-- ===== ZIEL ===== -->
@@ -119,7 +121,7 @@ async function saveGoal() {
   }
 
   isLoading.value = true
-  await new Promise(resolve => setTimeout(resolve, 500))
+  await new Promise((resolve) => setTimeout(resolve, 500))
 
   try {
     const goalData = {
@@ -144,55 +146,68 @@ async function saveGoal() {
 
 <style scoped>
 .goal-container {
-  max-width: 700px;
+  max-width: 720px;
   margin: 0 auto;
-  padding: 40px 20px;
+  padding: 48px 24px 64px;
+}
+
+.goal-header {
+  text-align: center;
+  margin-bottom: 40px;
 }
 
 h2 {
-  font-size: 2rem;
-  font-weight: 700;
+  font-size: 2.8rem;
+  font-weight: 800;
   color: #1a1a2e;
-  margin-bottom: 4px;
+  margin-bottom: 8px;
+  letter-spacing: -0.5px;
 }
 
-.goal-container > p {
+.goal-header p {
   color: #888;
-  font-size: 1rem;
-  margin-bottom: 32px;
+  font-size: 1.1rem;
 }
 
 .form-group {
-  margin-bottom: 32px;
+  margin-bottom: 36px;
+  background: white;
+  padding: 24px;
+  border-radius: 18px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.05);
+  border: 1px solid #f0f2f5;
 }
 
 .form-group label {
   display: block;
-  font-weight: 600;
+  font-weight: 700;
   font-size: 1.1rem;
-  color: #333;
-  margin-bottom: 12px;
+  color: #1a1a2e;
+  margin-bottom: 16px;
 }
 
 .form-group input {
   width: 100%;
-  padding: 12px 16px;
-  border: 2px solid #e0e0e0;
-  border-radius: 10px;
-  font-size: 1rem;
+  padding: 14px 18px;
+  border: 2px solid #e8ecf0;
+  border-radius: 12px;
+  font-size: 1.05rem;
   box-sizing: border-box;
-  transition: border-color 0.2s;
+  transition: all 0.2s ease;
+  background: #fafbfc;
 }
 
 .form-group input:focus {
   outline: none;
   border-color: #42b883;
+  background: white;
+  box-shadow: 0 0 0 4px rgba(66, 184, 131, 0.1);
 }
 
 .option-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 12px;
+  gap: 14px;
 }
 
 .tempo-grid {
@@ -200,10 +215,10 @@ h2 {
 }
 
 .option-card {
-  background: #f8fafc;
+  background: #fafbfc;
   border: 2px solid #eef2f6;
-  border-radius: 12px;
-  padding: 16px 12px;
+  border-radius: 14px;
+  padding: 20px 12px;
   text-align: center;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -212,18 +227,20 @@ h2 {
 .option-card:hover {
   border-color: #42b883;
   background: #f0faf5;
+  transform: translateY(-2px);
 }
 
 .option-card.active {
   border-color: #42b883;
   background: #e8f5ef;
-  box-shadow: 0 0 0 3px rgba(66, 184, 131, 0.2);
+  box-shadow: 0 4px 16px rgba(66, 184, 131, 0.25);
+  transform: translateY(-2px);
 }
 
 .option-icon {
   display: block;
-  font-size: 2rem;
-  margin-bottom: 4px;
+  font-size: 2.2rem;
+  margin-bottom: 8px;
 }
 
 .option-label {
@@ -235,47 +252,59 @@ h2 {
 
 .option-sub {
   display: block;
-  font-size: 0.75rem;
+  font-size: 0.78rem;
   color: #888;
-  margin-top: 2px;
+  margin-top: 4px;
 }
 
 .tempo-card {
-  padding: 20px 12px;
+  padding: 22px 12px;
 }
 
 button {
   width: 100%;
-  padding: 14px;
+  padding: 16px;
   background: #42b883;
   color: white;
   border: none;
-  border-radius: 12px;
-  font-size: 1.05rem;
-  font-weight: 600;
+  border-radius: 14px;
+  font-size: 1.1rem;
+  font-weight: 700;
   cursor: pointer;
   transition: all 0.2s ease;
+  box-shadow: 0 4px 16px rgba(66, 184, 131, 0.25);
 }
 
-button:hover {
+button:hover:not(:disabled) {
   background: #35a372;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(66, 184, 131, 0.35);
 }
 
 button:disabled {
-  background: #a0d9c1;
+  background: #cfe8dc;
   cursor: not-allowed;
+  box-shadow: none;
 }
 
 .success {
-  color: #28a745;
+  color: #1e7e34;
   text-align: center;
-  margin: 8px 0;
+  margin: 12px 0;
+  font-weight: 600;
+  padding: 12px;
+  background: #eaf7ee;
+  border-radius: 10px;
 }
 
 .error {
-  color: #dc3545;
+  color: #c0392b;
   text-align: center;
-  margin: 8px 0;
+  margin: 12px 0;
+  font-weight: 600;
+  padding: 12px;
+  background: #fdecea;
+  border-radius: 10px;
 }
 
 @media (max-width: 640px) {
@@ -288,7 +317,11 @@ button:disabled {
   }
 
   h2 {
-    font-size: 1.6rem;
+    font-size: 2rem;
+  }
+
+  .form-group {
+    padding: 18px;
   }
 }
 </style>

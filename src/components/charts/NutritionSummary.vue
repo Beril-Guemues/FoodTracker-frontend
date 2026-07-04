@@ -48,7 +48,7 @@
 
       <!-- ===== KREISDIAGRAMME ===== -->
       <div class="chart-section">
-        <h3>📊 Heutiger Fortschritt</h3>
+        <h3>Heutiger Fortschritt</h3>
 
         <div v-if="todayEntries.length === 0" class="no-entries">
           <p>Heute hast du noch nichts gegessen.</p>
@@ -110,8 +110,16 @@ interface FoodEntry {
   date: string
 }
 
+interface UserProfile {
+  weight: number
+  gender: string
+  age: number
+  height: number
+  targetWeight?: number
+}
+
 // ===== PROFILE =====
-const profile = ref<any>(null)
+const profile = ref<UserProfile | null>(null)
 
 onMounted(() => {
   const saved = localStorage.getItem('userProfile')
@@ -141,7 +149,7 @@ function loadTodayEntries() {
   const saved = localStorage.getItem('foodEntries')
   if (saved) {
     const allEntries: FoodEntry[] = JSON.parse(saved)
-    todayEntries.value = allEntries.filter(e => e.date === todayDate)
+    todayEntries.value = allEntries.filter((e) => e.date === todayDate)
   }
 }
 
@@ -154,13 +162,13 @@ const todayCalories = computed(() => {
 
 const todayProtein = computed(() => {
   return todayEntries.value.reduce((sum, e) => {
-    return sum + Math.round(((e.amount / 100) * e.product.protein) * 10) / 10
+    return sum + Math.round((e.amount / 100) * e.product.protein * 10) / 10
   }, 0)
 })
 
 const todayCarbs = computed(() => {
   return todayEntries.value.reduce((sum, e) => {
-    return sum + Math.round(((e.amount / 100) * e.product.carbs) * 10) / 10
+    return sum + Math.round((e.amount / 100) * e.product.carbs * 10) / 10
   }, 0)
 })
 
@@ -184,7 +192,7 @@ const proteinNeed = computed(() => {
 
 const carbNeed = computed(() => {
   if (!profile.value) return 0
-  return Math.round(calorieNeed.value * 0.5 / 4)
+  return Math.round((calorieNeed.value * 0.5) / 4)
 })
 
 const waterNeed = computed(() => {
@@ -217,7 +225,13 @@ let caloriesChart: Chart | null = null
 let proteinChart: Chart | null = null
 let carbsChart: Chart | null = null
 
-function createChart(canvas: HTMLCanvasElement, value: number, max: number, label: string, color: string) {
+function createChart(
+  canvas: HTMLCanvasElement,
+  value: number,
+  max: number,
+  label: string,
+  color: string,
+) {
   const percent = Math.min((value / max) * 100, 100)
   const remaining = Math.max(100 - percent, 0)
 
@@ -225,11 +239,13 @@ function createChart(canvas: HTMLCanvasElement, value: number, max: number, labe
     type: 'doughnut',
     data: {
       labels: ['Erreicht', 'Verbleibend'],
-      datasets: [{
-        data: [percent, remaining],
-        backgroundColor: [color, '#eef2f6'],
-        borderWidth: 0,
-      }]
+      datasets: [
+        {
+          data: [percent, remaining],
+          backgroundColor: [color, '#eef2f6'],
+          borderWidth: 0,
+        },
+      ],
     },
     options: {
       cutout: '75%',
@@ -239,24 +255,33 @@ function createChart(canvas: HTMLCanvasElement, value: number, max: number, labe
         legend: { display: false },
         tooltip: {
           callbacks: {
-            label: function(context) {
+            label: function (context) {
               if (context.dataIndex === 0) {
                 return `Erreicht: ${Math.round(value)} ${label}`
               } else {
                 return `Verbleibend: ${Math.round(max - value)} ${label}`
               }
-            }
-          }
-        }
-      }
-    }
+            },
+          },
+        },
+      },
+    },
   })
 }
 
 function initCharts() {
-  if (caloriesChart) { caloriesChart.destroy(); caloriesChart = null }
-  if (proteinChart) { proteinChart.destroy(); proteinChart = null }
-  if (carbsChart) { carbsChart.destroy(); carbsChart = null }
+  if (caloriesChart) {
+    caloriesChart.destroy()
+    caloriesChart = null
+  }
+  if (proteinChart) {
+    proteinChart.destroy()
+    proteinChart = null
+  }
+  if (carbsChart) {
+    carbsChart.destroy()
+    carbsChart = null
+  }
 
   if (caloriesChartRef.value) {
     caloriesChart = createChart(
@@ -264,7 +289,7 @@ function initCharts() {
       todayCalories.value,
       calorieNeed.value,
       'kcal',
-      '#42b883'
+      '#42b883',
     )
   }
 
@@ -274,7 +299,7 @@ function initCharts() {
       todayProtein.value,
       proteinNeed.value,
       'g Protein',
-      '#4a9eff'
+      '#4a9eff',
     )
   }
 
@@ -284,7 +309,7 @@ function initCharts() {
       todayCarbs.value,
       carbNeed.value,
       'g Carbs',
-      '#f59e0b'
+      '#f59e0b',
     )
   }
 }

@@ -1,4 +1,4 @@
-<template>
+f6F6<template>
   <div class="login-page">
     <!-- Linke Seite: Branding -->
     <div class="login-brand">
@@ -63,65 +63,6 @@
             {{ isLoading ? 'Wird angemeldet...' : 'Anmelden' }}
           </button>
         </form>
-
-        <div class="form-footer">
-          <p>
-            Noch keinen Account?
-            <a href="#" @click.prevent="showRegister = true">Jetzt registrieren</a>
-          </p>
-        </div>
-      </div>
-    </div>
-
-    <!-- ===== REGISTRIERUNG (Overlay) ===== -->
-    <div v-if="showRegister" class="register-overlay" @click.self="showRegister = false">
-      <div class="register-card">
-        <button class="close-btn" @click="showRegister = false">✕</button>
-        <h2>Konto erstellen</h2>
-        <p>Beginne deine Reise zu einem gesünderen Leben</p>
-
-        <form @submit.prevent="handleRegister">
-          <div class="form-group">
-            <label for="reg-email">E-Mail Adresse</label>
-            <input
-              id="reg-email"
-              v-model="registerEmail"
-              type="email"
-              placeholder="deine@email.de"
-              required
-            />
-          </div>
-
-          <div class="form-group">
-            <label for="reg-password">Passwort</label>
-            <input
-              id="reg-password"
-              v-model="registerPassword"
-              type="password"
-              placeholder="Mindestens 6 Zeichen"
-              required
-              minlength="6"
-            />
-          </div>
-
-          <div class="form-group">
-            <label for="reg-confirm">Passwort bestätigen</label>
-            <input
-              id="reg-confirm"
-              v-model="confirmPassword"
-              type="password"
-              placeholder="Passwort wiederholen"
-              required
-            />
-          </div>
-
-          <p v-if="registerError" class="error">{{ registerError }}</p>
-          <p v-if="registerSuccess" class="success">{{ registerSuccess }}</p>
-
-          <button type="submit" :disabled="isRegistering" class="btn-login">
-            {{ isRegistering ? 'Wird registriert...' : 'Registrieren' }}
-          </button>
-        </form>
       </div>
     </div>
   </div>
@@ -137,27 +78,16 @@ const router = useRouter()
 const VALID_EMAIL = 'beril@foodtracker.de'
 const VALID_PASSWORD = '123456'
 
-// ===== STATE =====
 const email = ref('')
 const password = ref('')
 const isLoading = ref(false)
 const errorMessage = ref('')
 
-// ===== REGISTER =====
-const showRegister = ref(false)
-const registerEmail = ref('')
-const registerPassword = ref('')
-const confirmPassword = ref('')
-const isRegistering = ref(false)
-const registerError = ref('')
-const registerSuccess = ref('')
-
-// ===== LOGIN =====
 async function handleLogin() {
   errorMessage.value = ''
   isLoading.value = true
 
-  await new Promise(resolve => setTimeout(resolve, 500))
+  await new Promise((resolve) => setTimeout(resolve, 500))
 
   if (email.value === VALID_EMAIL && password.value === VALID_PASSWORD) {
     localStorage.setItem('user', JSON.stringify({ id: 1, email: email.value }))
@@ -169,41 +99,9 @@ async function handleLogin() {
 
   isLoading.value = false
 }
-
-// ===== REGISTER =====
-async function handleRegister() {
-  registerError.value = ''
-  registerSuccess.value = ''
-
-  if (registerPassword.value !== confirmPassword.value) {
-    registerError.value = 'Passwörter stimmen nicht überein'
-    return
-  }
-
-  if (registerPassword.value.length < 6) {
-    registerError.value = 'Passwort muss mindestens 6 Zeichen haben'
-    return
-  }
-
-  isRegistering.value = true
-  await new Promise(resolve => setTimeout(resolve, 500))
-
-  registerSuccess.value = 'Registrierung erfolgreich! Bitte anmelden.'
-  registerEmail.value = ''
-  registerPassword.value = ''
-  confirmPassword.value = ''
-
-  setTimeout(() => {
-    showRegister.value = false
-    registerSuccess.value = ''
-  }, 2000)
-
-  isRegistering.value = false
-}
 </script>
 
 <style scoped>
-/* ===== GRUNDLAGEN ===== */
 .login-page {
   position: fixed;
   top: 0;
@@ -220,7 +118,6 @@ async function handleRegister() {
   background: white;
 }
 
-/* ===== LINKE SEITE: BRANDING ===== */
 .login-brand {
   background: linear-gradient(135deg, #1a1a2e 0%, #42b883 100%);
   display: flex;
@@ -273,7 +170,6 @@ async function handleRegister() {
   font-weight: 700;
 }
 
-/* ===== RECHTE SEITE: FORMULAR ===== */
 .login-form-container {
   display: flex;
   justify-content: center;
@@ -303,7 +199,6 @@ async function handleRegister() {
   font-size: 0.95rem;
 }
 
-/* ===== FORMULAR ===== */
 .form-group {
   margin-bottom: 20px;
 }
@@ -318,14 +213,6 @@ async function handleRegister() {
 
 .input-wrapper {
   position: relative;
-}
-
-.input-icon {
-  position: absolute;
-  left: 14px;
-  top: 50%;
-  transform: translateY(-50%);
-  font-size: 1rem;
 }
 
 .input-wrapper input {
@@ -346,7 +233,6 @@ async function handleRegister() {
   box-shadow: 0 0 0 4px rgba(66, 184, 131, 0.1);
 }
 
-/* ===== BUTTONS ===== */
 .btn-login {
   width: 100%;
   padding: 14px;
@@ -373,25 +259,6 @@ async function handleRegister() {
   box-shadow: none;
 }
 
-/* ===== FORM FOOTER ===== */
-.form-footer {
-  text-align: center;
-  margin-top: 24px;
-  color: #888;
-  font-size: 0.95rem;
-}
-
-.form-footer a {
-  color: #42b883;
-  text-decoration: none;
-  font-weight: 600;
-}
-
-.form-footer a:hover {
-  text-decoration: underline;
-}
-
-/* ===== MESSAGES ===== */
 .error {
   color: #dc3545;
   text-align: center;
@@ -399,95 +266,6 @@ async function handleRegister() {
   font-size: 0.9rem;
 }
 
-.success {
-  color: #28a745;
-  text-align: center;
-  margin: 8px 0 4px 0;
-  font-size: 0.9rem;
-}
-
-/* ===== REGISTER OVERLAY ===== */
-.register-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  backdrop-filter: blur(8px);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  padding: 20px;
-  z-index: 10000;
-  animation: fadeIn 0.25s ease;
-}
-
-.register-card {
-  background: white;
-  padding: 40px 48px;
-  border-radius: 20px;
-  width: 100%;
-  max-width: 420px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-  position: relative;
-  animation: slideUp 0.3s ease;
-}
-
-.register-card .close-btn {
-  position: absolute;
-  top: 16px;
-  right: 20px;
-  background: none;
-  border: none;
-  font-size: 1.2rem;
-  cursor: pointer;
-  color: #888;
-  transition: color 0.2s;
-}
-
-.register-card .close-btn:hover {
-  color: #333;
-}
-
-.register-card h2 {
-  font-size: 1.6rem;
-  font-weight: 700;
-  color: #1a1a2e;
-  margin-bottom: 4px;
-}
-
-.register-card p {
-  color: #888;
-  margin-bottom: 24px;
-}
-
-.register-card .form-group input {
-  padding: 12px 16px;
-}
-
-/* ===== ANIMATIONEN ===== */
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
-@keyframes slideUp {
-  from {
-    transform: translateY(30px);
-    opacity: 0;
-  }
-  to {
-    transform: translateY(0);
-    opacity: 1;
-  }
-}
-
-/* ===== RESPONSIVE ===== */
 @media (max-width: 768px) {
   .login-page {
     grid-template-columns: 1fr;
@@ -507,10 +285,6 @@ async function handleRegister() {
 }
 
 @media (max-width: 480px) {
-  .register-card {
-    padding: 28px 20px;
-  }
-
   .form-header h2 {
     font-size: 1.4rem;
   }
@@ -521,7 +295,7 @@ async function handleRegister() {
   }
 
   .input-wrapper input {
-    padding: 10px 14px 10px 40px;
+    padding: 10px 14px;
     font-size: 0.95rem;
   }
 }
