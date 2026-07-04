@@ -1,67 +1,108 @@
 <template>
-  <div class="progress-chart">
-    <h2>Fortschrittsdiagramm</h2>
+  <div class="progress-container">
+    <h2>Dein Fortschritt</h2>
+    <p>Deine Kalorien-, Protein- und Kohlenhydrat-Aufnahme der letzten 7 Tage</p>
 
-    <p v-if="errorMessage" class="error">{{ errorMessage }}</p>
-    <div v-if="isLoading" class="hint">Lade Daten...</div>
+    <!-- ===== FEHLERMELDUNG ===== -->
+    <div v-if="errorMessage" class="error-message">
+      {{ errorMessage }}
+    </div>
 
-    <!-- ===== HEUTIGER KALORIEN-KREIS ===== -->
-    <div v-if="!isLoading && profile" class="today-section">
-      <h3>Heute</h3>
-      <div class="donut-wrapper">
-        <canvas ref="donutRef"></canvas>
-        <div class="donut-center">
-          <span class="donut-value">{{ todayCalories.toFixed(0) }}</span>
-          <span class="donut-unit">/ {{ calorieNeed }} kcal</span>
+    <div v-if="!profile" class="no-data">
+      <p>Bitte erstelle zuerst dein Profil.</p>
+      <router-link to="/profile" class="btn">Zum Profil</router-link>
+    </div>
+
+    <div v-else-if="!userGoal" class="no-data">
+      <p>Bitte lege zuerst dein Ziel fest.</p>
+      <router-link to="/goal" class="btn">Zum Ziel</router-link>
+    </div>
+
+    <div v-else-if="entries.length === 0" class="no-data">
+      <p>Noch keine Mahlzeiten getrackt.</p>
+      <router-link to="/foodentry" class="btn">Jetzt Mahlzeit tracken</router-link>
+    </div>
+
+    <!-- ===== NORMALE ANZEIGE ===== -->
+    <div v-else>
+      <!-- 3 Kreisdiagramme -->
+      <div class="donuts-section">
+        <div class="donut-card">
+          <h4>Kalorien</h4>
+          <div class="donut-wrapper">
+            <canvas ref="caloriesDonutRef"></canvas>
+            <div class="donut-center">
+              <span class="donut-value">{{ todayCalories.toFixed(0) }}</span>
+              <span class="donut-unit">/ {{ calorieNeed }} kcal</span>
+            </div>
+          </div>
+          <span class="donut-percent">{{ caloriesPercent }}%</span>
+        </div>
+
+        <div class="donut-card">
+          <h4>Protein</h4>
+          <div class="donut-wrapper">
+            <canvas ref="proteinDonutRef"></canvas>
+            <div class="donut-center">
+              <span class="donut-value">{{ todayProtein.toFixed(1) }}</span>
+              <span class="donut-unit">/ {{ proteinNeed }} g</span>
+            </div>
+          </div>
+          <span class="donut-percent">{{ proteinPercent }}%</span>
+        </div>
+
+        <div class="donut-card">
+          <h4>Kohlenhydrate</h4>
+          <div class="donut-wrapper">
+            <canvas ref="carbsDonutRef"></canvas>
+            <div class="donut-center">
+              <span class="donut-value">{{ todayCarbs.toFixed(1) }}</span>
+              <span class="donut-unit">/ {{ carbNeed }} g</span>
+            </div>
+          </div>
+          <span class="donut-percent">{{ carbsPercent }}%</span>
         </div>
       </div>
-      <p class="remaining-text">
-        Noch <strong>{{ remainingCalories.toFixed(0) }} kcal</strong> übrig
-      </p>
-    </div>
 
-    <div v-if="!isLoading && !profile" class="hint">
-      Bitte erstelle zuerst dein Profil, um dein Kalorienziel zu sehen.
-    </div>
-
-    <!-- ===== 7-TAGE-VERLAUF ===== -->
-    <h3 v-if="!isLoading && dailyStats.length > 0" class="section-title">Letzte 7 Tage</h3>
-
-    <div v-if="!isLoading && dailyStats.length > 0" class="chart">
-      <div v-for="day in dailyStats" :key="day.date" class="day-column">
-        <div class="bars">
-          <div
-            class="bar calories"
-            :style="{ height: barHeight(day.calories, maxCalories) + 'px' }"
-            :title="`${day.calories.toFixed(0)} kcal`"
-          ></div>
-          <div
-            class="bar protein"
-            :style="{ height: barHeight(day.protein, maxProtein) + 'px' }"
-            :title="`${day.protein.toFixed(1)} g Protein`"
-          ></div>
-        </div>
-        <span class="day-label">{{ formatDate(day.date) }}</span>
+      <!-- Liniendiagramm -->
+      <div class="chart-wrapper">
+        <canvas ref="progressChartRef"></canvas>
       </div>
-    </div>
 
-    <div v-if="!isLoading && dailyStats.length === 0" class="hint">
-      Noch keine Einträge vorhanden.
-    </div>
-
-    <div class="legend">
-      <span class="legend-item"><span class="dot calories"></span> Kalorien (kcal)</span>
-      <span class="legend-item"><span class="dot protein"></span> Protein (g)</span>
+      <!-- Zusammenfassung -->
+      <div class="summary">
+        <div class="summary-card">
+          <span class="summary-value">{{ totalCalories }}</span>
+          <span class="summary-label">Kalorien (gesamt)</span>
+        </div>
+        <div class="summary-card">
+          <span class="summary-value">{{ totalProtein.toFixed(1) }}</span>
+          <span class="summary-label">Protein (gesamt)</span>
+        </div>
+        <div class="summary-card">
+          <span class="summary-value">{{ totalCarbs.toFixed(1) }}</span>
+          <span class="summary-label">Carbs (gesamt)</span>
+        </div>
+        <div class="summary-card">
+          <span class="summary-value">{{ averageCalories }}</span>
+          <span class="summary-label">Ø Kalorien pro Tag</span>
+        </div>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref, watch, nextTick } from 'vue'
+import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import { Chart, registerables } from 'chart.js'
+import axios from 'axios'
+import { API_URL } from '@/api/config'
 
 Chart.register(...registerables)
 
+const api = axios.create({ baseURL: API_URL })
+
+// ===== TYPES =====
 interface Product {
   id: number
   name: string
@@ -74,41 +115,116 @@ interface FoodEntry {
   id: number
   product: Product
   amount: number
-  date: string // ISO-Format YYYY-MM-DD
+  date: string
 }
 
 interface DailyStat {
   date: string
   calories: number
   protein: number
+  carbs: number
 }
 
 interface UserProfile {
+  id: number
   weight: number
   gender: string
   age: number
   height: number
+  targetWeight: number
 }
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8080'
-const MAX_BAR_HEIGHT = 150 // px
-
+// ===== STATE =====
 const entries = ref<FoodEntry[]>([])
 const isLoading = ref(false)
 const errorMessage = ref('')
 const profile = ref<UserProfile | null>(null)
+const userGoal = ref<any>(null)
 
-// ===== PROFIL LADEN =====
-onMounted(() => {
-  const saved = localStorage.getItem('userProfile')
-  if (saved) {
-    try {
-      profile.value = JSON.parse(saved)
-    } catch {}
+// ===== CHART REFS =====
+const progressChartRef = ref<HTMLCanvasElement | null>(null)
+const caloriesDonutRef = ref<HTMLCanvasElement | null>(null)
+const proteinDonutRef = ref<HTMLCanvasElement | null>(null)
+const carbsDonutRef = ref<HTMLCanvasElement | null>(null)
+
+let progressChart: Chart | null = null
+let caloriesDonut: Chart | null = null
+let proteinDonut: Chart | null = null
+let carbsDonut: Chart | null = null
+
+// ===== PROFIL VOM BACKEND LADEN =====
+async function loadProfile() {
+  const profileId = localStorage.getItem('userProfileId')
+  if (!profileId) {
+    errorMessage.value = 'Kein Profil gefunden. Bitte erstelle zuerst ein Profil.'
+    return
   }
+
+  try {
+    const response = await api.get<UserProfile>(`/profiles/${profileId}`)
+    profile.value = response.data
+    errorMessage.value = ''
+  } catch (err) {
+    console.error('Profil konnte nicht geladen werden:', err)
+    errorMessage.value = 'Fehler beim Laden des Profils.'
+  }
+}
+
+// ===== ZIEL LADEN =====
+function loadGoal() {
+  try {
+    const savedGoal = localStorage.getItem('userGoal')
+    if (savedGoal) {
+      userGoal.value = JSON.parse(savedGoal)
+    }
+  } catch {
+    userGoal.value = null
+  }
+}
+
+// ===== FOOD ENTRIES VOM BACKEND LADEN =====
+async function loadEntries() {
+  isLoading.value = true
+  errorMessage.value = ''
+
+  try {
+    const response = await api.get<FoodEntry[]>('/foodentries')
+    entries.value = response.data
+  } catch (err) {
+    console.error('Einträge konnten nicht geladen werden:', err)
+    errorMessage.value = 'Fehler beim Laden der Einträge.'
+  } finally {
+    isLoading.value = false
+  }
+}
+
+// ===== TODAY'S DATE =====
+const todayDate = new Date().toISOString().split('T')[0]
+
+// ===== TODAY TOTALS =====
+const todayEntries = computed(() => {
+  return entries.value.filter(e => e.date === todayDate && e.product)
 })
 
-// ===== KALORIENBEDARF =====
+const todayCalories = computed(() => {
+  return todayEntries.value.reduce((sum, e) => {
+    return sum + (e.amount / 100) * e.product.calories
+  }, 0)
+})
+
+const todayProtein = computed(() => {
+  return todayEntries.value.reduce((sum, e) => {
+    return sum + (e.amount / 100) * e.product.protein
+  }, 0)
+})
+
+const todayCarbs = computed(() => {
+  return todayEntries.value.reduce((sum, e) => {
+    return sum + (e.amount / 100) * e.product.carbs
+  }, 0)
+})
+
+// ===== BEREICHNUNGEN =====
 const calorieNeed = computed(() => {
   if (!profile.value) return 0
   const p = profile.value
@@ -121,42 +237,104 @@ const calorieNeed = computed(() => {
   return Math.round(bmr * 1.2)
 })
 
-// ===== HEUTIGE KALORIEN =====
-const todayDate = new Date().toISOString().split('T')[0]
-
-const todayCalories = computed(() => {
-  return entries.value
-    .filter((e) => e.date === todayDate && e.product)
-    .reduce((sum, e) => sum + (e.amount / 100) * e.product.calories, 0)
+const proteinNeed = computed(() => {
+  if (!profile.value) return 0
+  return Math.round(profile.value.weight * 1.2)
 })
 
-const remainingCalories = computed(() => Math.max(calorieNeed.value - todayCalories.value, 0))
+const carbNeed = computed(() => {
+  if (!profile.value) return 0
+  return Math.round((calorieNeed.value * 0.5) / 4)
+})
 
-// ===== DONUT CHART =====
-const donutRef = ref<HTMLCanvasElement | null>(null)
-let donutChart: Chart | null = null
+// ===== PROZENTE =====
+const caloriesPercent = computed(() => {
+  if (calorieNeed.value === 0) return 0
+  return Math.min(Math.round((todayCalories.value / calorieNeed.value) * 100), 100)
+})
 
-function initDonut() {
-  if (donutChart) {
-    donutChart.destroy()
-    donutChart = null
+const proteinPercent = computed(() => {
+  if (proteinNeed.value === 0) return 0
+  return Math.min(Math.round((todayProtein.value / proteinNeed.value) * 100), 100)
+})
+
+const carbsPercent = computed(() => {
+  if (carbNeed.value === 0) return 0
+  return Math.min(Math.round((todayCarbs.value / carbNeed.value) * 100), 100)
+})
+
+// ===== DAILY STATS (letzte 7 Tage) =====
+const dailyStats = computed<DailyStat[]>(() => {
+  const grouped = new Map<string, { calories: number; protein: number; carbs: number }>()
+
+  for (const entry of entries.value) {
+    if (!entry.product || !entry.date) continue
+
+    const factor = entry.amount / 100
+    const calories = factor * entry.product.calories
+    const protein = factor * entry.product.protein
+    const carbs = factor * entry.product.carbs
+
+    const existing = grouped.get(entry.date) || { calories: 0, protein: 0, carbs: 0 }
+    existing.calories += calories
+    existing.protein += protein
+    existing.carbs += carbs
+    grouped.set(entry.date, existing)
   }
-  if (!donutRef.value || calorieNeed.value === 0) return
 
-  const eaten = Math.min(todayCalories.value, calorieNeed.value)
-  const remaining = remainingCalories.value
+  return Array.from(grouped.entries())
+    .map(([date, values]) => ({
+      date,
+      calories: Math.round(values.calories),
+      protein: Math.round(values.protein * 10) / 10,
+      carbs: Math.round(values.carbs * 10) / 10,
+    }))
+    .sort((a, b) => a.date.localeCompare(b.date))
+    .slice(-7)
+})
 
-  donutChart = new Chart(donutRef.value, {
+// ===== SUMMARY STATS =====
+const totalCalories = computed(() => {
+  return dailyStats.value.reduce((sum, d) => sum + d.calories, 0)
+})
+
+const totalProtein = computed(() => {
+  return dailyStats.value.reduce((sum, d) => sum + d.protein, 0)
+})
+
+const totalCarbs = computed(() => {
+  return dailyStats.value.reduce((sum, d) => sum + d.carbs, 0)
+})
+
+const averageCalories = computed(() => {
+  if (dailyStats.value.length === 0) return 0
+  return Math.round(totalCalories.value / dailyStats.value.length)
+})
+
+// ===== HELPERS =====
+function formatDate(isoDate: string): string {
+  const date = new Date(isoDate + 'T00:00:00')
+  return date.toLocaleDateString('de-DE', {
+    weekday: 'short',
+    day: '2-digit',
+    month: '2-digit',
+  })
+}
+
+// ===== DONUT CHARTS =====
+function createDonut(canvas: HTMLCanvasElement, value: number, max: number, color: string) {
+  const eaten = Math.min(value, max)
+  const remaining = Math.max(max - eaten, 0)
+
+  return new Chart(canvas, {
     type: 'doughnut',
     data: {
-      labels: ['Gegessen', 'Übrig'],
-      datasets: [
-        {
-          data: [eaten, remaining],
-          backgroundColor: ['#1b4332', '#eef2f6'],
-          borderWidth: 0,
-        },
-      ],
+      labels: ['Erreicht', 'Verbleibend'],
+      datasets: [{
+        data: [eaten, remaining],
+        backgroundColor: [color, '#eef2f6'],
+        borderWidth: 0,
+      }]
     },
     options: {
       cutout: '75%',
@@ -166,12 +344,133 @@ function initDonut() {
         legend: { display: false },
         tooltip: {
           callbacks: {
-            label: (context) => {
+            label: function(context) {
               if (context.dataIndex === 0) {
-                return `Gegessen: ${Math.round(eaten)} kcal`
+                return `Erreicht: ${Math.round(value)}`
+              } else {
+                return `Verbleibend: ${Math.round(remaining)}`
               }
-              return `Übrig: ${Math.round(remaining)} kcal`
+            }
+          }
+        }
+      }
+    }
+  })
+}
+
+function initDonuts() {
+  if (caloriesDonut) { caloriesDonut.destroy(); caloriesDonut = null }
+  if (proteinDonut) { proteinDonut.destroy(); proteinDonut = null }
+  if (carbsDonut) { carbsDonut.destroy(); carbsDonut = null }
+
+  if (caloriesDonutRef.value && calorieNeed.value > 0) {
+    caloriesDonut = createDonut(
+      caloriesDonutRef.value,
+      todayCalories.value,
+      calorieNeed.value,
+      '#42b883'
+    )
+  }
+
+  if (proteinDonutRef.value && proteinNeed.value > 0) {
+    proteinDonut = createDonut(
+      proteinDonutRef.value,
+      todayProtein.value,
+      proteinNeed.value,
+      '#4a9eff'
+    )
+  }
+
+  if (carbsDonutRef.value && carbNeed.value > 0) {
+    carbsDonut = createDonut(
+      carbsDonutRef.value,
+      todayCarbs.value,
+      carbNeed.value,
+      '#f59e0b'
+    )
+  }
+}
+
+// ===== LINE CHART =====
+function createLineChart() {
+  if (!progressChartRef.value || dailyStats.value.length === 0) return
+
+  if (progressChart) {
+    progressChart.destroy()
+    progressChart = null
+  }
+
+  const labels = dailyStats.value.map(d => formatDate(d.date))
+  const caloriesData = dailyStats.value.map(d => d.calories)
+  const proteinData = dailyStats.value.map(d => d.protein)
+  const carbsData = dailyStats.value.map(d => d.carbs)
+
+  progressChart = new Chart(progressChartRef.value, {
+    type: 'line',
+    data: {
+      labels: labels,
+      datasets: [
+        {
+          label: 'Kalorien (kcal)',
+          data: caloriesData,
+          borderColor: '#42b883',
+          backgroundColor: 'rgba(66, 184, 131, 0.1)',
+          fill: true,
+          tension: 0.3,
+          pointBackgroundColor: '#42b883',
+          pointRadius: 4,
+        },
+        {
+          label: 'Protein (g)',
+          data: proteinData,
+          borderColor: '#4a9eff',
+          backgroundColor: 'rgba(74, 158, 255, 0.1)',
+          fill: true,
+          tension: 0.3,
+          pointBackgroundColor: '#4a9eff',
+          pointRadius: 4,
+        },
+        {
+          label: 'Kohlenhydrate (g)',
+          data: carbsData,
+          borderColor: '#f59e0b',
+          backgroundColor: 'rgba(245, 158, 11, 0.1)',
+          fill: true,
+          tension: 0.3,
+          pointBackgroundColor: '#f59e0b',
+          pointRadius: 4,
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      plugins: {
+        legend: {
+          position: 'top',
+          labels: {
+            usePointStyle: true,
+            padding: 20,
+          },
+        },
+        tooltip: {
+          callbacks: {
+            label: function (context) {
+              return context.dataset.label + ': ' + context.parsed.y
             },
+          },
+        },
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          grid: {
+            color: 'rgba(0,0,0,0.05)',
+          },
+        },
+        x: {
+          grid: {
+            display: false,
           },
         },
       },
@@ -179,96 +478,87 @@ function initDonut() {
   })
 }
 
-watch([todayCalories, calorieNeed], () => {
-  nextTick(() => initDonut())
+// ===== WATCH =====
+watch([todayCalories, todayProtein, todayCarbs, calorieNeed, proteinNeed, carbNeed, dailyStats], () => {
+  nextTick(() => {
+    initDonuts()
+    createLineChart()
+  })
 })
 
-// Annahme: "amount" ist in Gramm angegeben (siehe Product.calories = kcal pro 100g)
-const dailyStats = computed<DailyStat[]>(() => {
-  const grouped = new Map<string, { calories: number; protein: number }>()
-
-  for (const entry of entries.value) {
-    if (!entry.product || !entry.date) continue
-
-    const factor = entry.amount / 100
-    const calories = factor * entry.product.calories
-    const protein = factor * entry.product.protein
-
-    const existing = grouped.get(entry.date) ?? { calories: 0, protein: 0 }
-    existing.calories += calories
-    existing.protein += protein
-    grouped.set(entry.date, existing)
-  }
-
-  return Array.from(grouped.entries())
-    .map(([date, stats]) => ({ date, ...stats }))
-    .sort((a, b) => a.date.localeCompare(b.date))
-    .slice(-7) // letzte 7 Tage mit Einträgen
-})
-
-const maxCalories = computed(() => Math.max(1, ...dailyStats.value.map((d) => d.calories)))
-const maxProtein = computed(() => Math.max(1, ...dailyStats.value.map((d) => d.protein)))
-
-function barHeight(value: number, max: number): number {
-  return Math.max(2, (value / max) * MAX_BAR_HEIGHT)
-}
-
-function formatDate(isoDate: string): string {
-  const [, month, day] = isoDate.split('-')
-  return `${day}.${month}.`
-}
-
-async function loadEntries() {
-  errorMessage.value = ''
-  isLoading.value = true
-
-  try {
-    const response = await fetch(`${API_BASE_URL}/foodentries`)
-    if (!response.ok) throw new Error('Daten konnten nicht geladen werden.')
-    entries.value = await response.json()
-  } catch (err) {
-    errorMessage.value = err instanceof Error ? err.message : 'Unbekannter Fehler beim Laden.'
-  } finally {
-    isLoading.value = false
-  }
-}
-
+// ===== INIT =====
 onMounted(async () => {
+  await loadProfile()
+  loadGoal()
   await loadEntries()
-  setTimeout(() => initDonut(), 300)
+  setTimeout(() => {
+    initDonuts()
+    createLineChart()
+  }, 300)
 })
 </script>
 
 <style scoped>
-.progress-chart {
-  max-width: 500px;
+.progress-container {
+  max-width: 1200px;
   margin: 0 auto;
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
+  padding: 40px 20px;
 }
 
-/* ===== HEUTIGER KREIS ===== */
-.today-section {
+h2 {
   text-align: center;
+  font-size: 2rem;
+  font-weight: 700;
+  color: #1a1a2e;
+  margin-bottom: 4px;
+}
+
+.progress-container > p {
+  text-align: center;
+  color: #888;
+  font-size: 1rem;
+  margin-bottom: 32px;
+}
+
+/* ===== FEHLERMELDUNG ===== */
+.error-message {
+  background: #fde8e8;
+  color: #dc3545;
+  padding: 16px 20px;
+  border-radius: 10px;
+  text-align: center;
+  font-size: 1rem;
+  margin-bottom: 20px;
+  border: 1px solid #f5c6cb;
+}
+
+.donuts-section {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+  margin-bottom: 32px;
+}
+
+.donut-card {
   background: white;
-  border-radius: 18px;
-  padding: 24px;
+  padding: 20px 16px;
+  border-radius: 16px;
+  text-align: center;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
   border: 1px solid #eef2f6;
 }
 
-.today-section h3 {
-  font-size: 1.2rem;
-  font-weight: 700;
+.donut-card h4 {
+  font-size: 1rem;
+  font-weight: 600;
   color: #1a1a2e;
-  margin-bottom: 16px;
+  margin-bottom: 12px;
 }
 
 .donut-wrapper {
   position: relative;
-  width: 200px;
-  height: 200px;
+  width: 150px;
+  height: 150px;
   margin: 0 auto;
 }
 
@@ -283,109 +573,135 @@ onMounted(async () => {
 }
 
 .donut-value {
-  font-size: 1.8rem;
+  font-size: 1.4rem;
   font-weight: 800;
   color: #1a1a2e;
+  line-height: 1.2;
 }
 
 .donut-unit {
-  font-size: 0.85rem;
+  font-size: 0.7rem;
   color: #888;
 }
 
-.remaining-text {
-  margin-top: 16px;
-  color: #555;
-  font-size: 0.95rem;
+.donut-percent {
+  display: block;
+  margin-top: 8px;
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #42b883;
 }
 
-.remaining-text strong {
-  color: #1b4332;
+.chart-wrapper {
+  background: white;
+  padding: 24px;
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+  border: 1px solid #eef2f6;
+  margin-bottom: 32px;
 }
 
-.section-title {
-  font-size: 1.1rem;
+.chart-wrapper canvas {
+  width: 100% !important;
+  height: 400px !important;
+}
+
+.summary {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+
+.summary-card {
+  background: white;
+  padding: 20px 16px;
+  border-radius: 12px;
+  text-align: center;
+  border: 1px solid #eef2f6;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+}
+
+.summary-value {
+  display: block;
+  font-size: 1.6rem;
   font-weight: 700;
   color: #1a1a2e;
-  margin-top: 8px;
 }
 
-.chart {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-around;
-  height: 200px;
-  border-bottom: 2px solid #ccc;
-  padding: 0 0.5rem;
-}
-
-.day-column {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.4rem;
-}
-
-.bars {
-  display: flex;
-  align-items: flex-end;
-  gap: 4px;
-  height: 150px;
-}
-
-.bar {
-  width: 14px;
-  border-radius: 3px 3px 0 0;
-  transition: height 0.2s ease;
-}
-
-.bar.calories {
-  background-color: #42b883;
-}
-
-.bar.protein {
-  background-color: #3576c9;
-}
-
-.day-label {
-  font-size: 0.75rem;
-  color: #666;
-}
-
-.legend {
-  display: flex;
-  gap: 1.5rem;
-  justify-content: center;
-  font-size: 0.85rem;
-}
-
-.legend-item {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-}
-
-.dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  display: inline-block;
-}
-
-.dot.calories {
-  background-color: #42b883;
-}
-
-.dot.protein {
-  background-color: #3576c9;
-}
-
-.error {
-  color: #d33;
-}
-
-.hint {
+.summary-label {
+  display: block;
   font-size: 0.85rem;
   color: #888;
+  margin-top: 4px;
+}
+
+.no-data {
+  text-align: center;
+  padding: 60px 40px;
+  background: #f8fafc;
+  border-radius: 16px;
+}
+
+.no-data p {
+  font-size: 1.1rem;
+  color: #555;
+  margin-bottom: 16px;
+}
+
+.btn {
+  display: inline-block;
+  padding: 10px 28px;
+  background: #42b883;
+  color: white;
+  border-radius: 10px;
+  text-decoration: none;
+  font-weight: 600;
+  transition: background 0.2s;
+}
+
+.btn:hover {
+  background: #35a372;
+}
+
+@media (max-width: 768px) {
+  .donuts-section {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .summary {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .chart-wrapper canvas {
+    height: 300px !important;
+  }
+
+  .chart-wrapper {
+    padding: 16px;
+  }
+}
+
+@media (max-width: 480px) {
+  .summary {
+    grid-template-columns: 1fr;
+  }
+
+  .donut-wrapper {
+    width: 120px;
+    height: 120px;
+  }
+
+  .donut-value {
+    font-size: 1.1rem;
+  }
+
+  h2 {
+    font-size: 1.6rem;
+  }
+
+  .chart-wrapper canvas {
+    height: 250px !important;
+  }
 }
 </style>

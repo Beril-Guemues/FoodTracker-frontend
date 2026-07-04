@@ -38,7 +38,7 @@
           <span class="label">Wasserempfehlung</span>
         </div>
 
-        <!-- ZIEL-GEWICHT (NEU) -->
+        <!-- ZIEL-GEWICHT -->
         <div class="nutrition-card">
           <span class="value">{{ targetWeight }}</span>
           <span class="unit">kg</span>
@@ -91,8 +91,12 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import { Chart, registerables } from 'chart.js'
+import axios from 'axios'
+import { API_URL } from '@/api/config'
 
 Chart.register(...registerables)
+
+const api = axios.create({ baseURL: API_URL })
 
 // ===== TYPES =====
 interface Product {
@@ -111,45 +115,55 @@ interface FoodEntry {
 }
 
 interface UserProfile {
+  id: number
   weight: number
   gender: string
   age: number
   height: number
-  targetWeight?: number
+  targetWeight: number
 }
 
 // ===== PROFILE =====
 const profile = ref<UserProfile | null>(null)
+const calorieNeed = ref(0)
+const waterNeed = ref('0')
 
-onMounted(() => {
-  const saved = localStorage.getItem('userProfile')
-  if (saved) {
-    profile.value = JSON.parse(saved)
+async function loadProfile() {
+  const profileId = localStorage.getItem('userProfileId')
+  if (!profileId) return
+
+  try {
+    const response = await api.get<UserProfile>(`/profiles/${profileId}`)
+    profile.value = response.data
+
+    // Kalorien- und Wasserbedarf direkt vom Backend holen
+    const calorieResponse = await api.get<number>(`/profiles/${profileId}/calorie-need`)
+    calorieNeed.value = Math.round(calorieResponse.data)
+
+    const waterResponse = await api.get<number>(`/profiles/${profileId}/water-need`)
+    waterNeed.value = waterResponse.data.toFixed(2)
+  } catch (error) {
+    console.error('Profil konnte nicht geladen werden:', error)
   }
-  loadTodayEntries()
-})
+}
 
-// ===== ZIEL-GEWICHT =====
+// ===== ZIEL-GEWICHT (jetzt aus Profil, nicht mehr aus Goal-localStorage) =====
 const targetWeight = computed(() => {
-  const saved = localStorage.getItem('userGoal')
-  if (saved) {
-    try {
-      const parsed = JSON.parse(saved)
-      return parsed.targetWeight || '—'
-    } catch {}
-  }
-  return '—'
+  return profile.value?.targetWeight ?? '—'
 })
 
-// ===== TODAY'S ENTRIES =====
+// ===== TODAY'S ENTRIES (vom Backend) =====
 const todayEntries = ref<FoodEntry[]>([])
 const todayDate = new Date().toISOString().split('T')[0]
 
-function loadTodayEntries() {
-  const saved = localStorage.getItem('foodEntries')
-  if (saved) {
-    const allEntries: FoodEntry[] = JSON.parse(saved)
-    todayEntries.value = allEntries.filter((e) => e.date === todayDate)
+async function loadTodayEntries() {
+  try {
+    const response = await api.get<FoodEntry[]>('/foodentries/date', {
+      params: { date: todayDate },
+    })
+    todayEntries.value = response.data
+  } catch (error) {
+    console.error('Einträge konnten nicht geladen werden:', error)
   }
 }
 
@@ -172,32 +186,15 @@ const todayCarbs = computed(() => {
   }, 0)
 })
 
-// ===== BEREICHNUNGEN =====
-const calorieNeed = computed(() => {
-  if (!profile.value) return 0
-  const p = profile.value
-  let bmr
-  if (p.gender === 'female') {
-    bmr = 10 * p.weight + 6.25 * p.height - 5 * p.age - 161
-  } else {
-    bmr = 10 * p.weight + 6.25 * p.height - 5 * p.age + 5
-  }
-  return Math.round(bmr * 1.2)
-})
-
+// ===== PROTEIN / CARB BEDARF (noch lokal, kein Backend-Endpoint dafür vorhanden) =====
 const proteinNeed = computed(() => {
   if (!profile.value) return 0
   return Math.round(profile.value.weight * 1.2)
 })
 
 const carbNeed = computed(() => {
-  if (!profile.value) return 0
+  if (!calorieNeed.value) return 0
   return Math.round((calorieNeed.value * 0.5) / 4)
-})
-
-const waterNeed = computed(() => {
-  if (!profile.value) return 0
-  return (profile.value.weight * 0.035).toFixed(2)
 })
 
 // ===== PROZENTE =====
@@ -320,7 +317,9 @@ watch([todayCalories, todayProtein, todayCarbs, calorieNeed, proteinNeed, carbNe
 })
 
 // ===== INIT =====
-onMounted(() => {
+onMounted(async () => {
+  await loadProfile()
+  await loadTodayEntries()
   setTimeout(() => {
     initCharts()
   }, 300)

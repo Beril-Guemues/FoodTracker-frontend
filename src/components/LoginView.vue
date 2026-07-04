@@ -1,4 +1,4 @@
-f6F6<template>
+<template>
   <div class="login-page">
     <!-- Linke Seite: Branding -->
     <div class="login-brand">
@@ -18,6 +18,12 @@ f6F6<template>
             <span class="check">✓</span>
             <span>Fortschritt im Blick behalten</span>
           </div>
+        </div>
+
+        <!-- DEMO-HINWEIS -->
+        <div class="demo-hint">
+          <span class="demo-tag">Demo</span>
+          <span>benutzer@foodtracker.de / 123456</span>
         </div>
       </div>
     </div>
@@ -51,7 +57,7 @@ f6F6<template>
                 id="password"
                 v-model="password"
                 type="password"
-                placeholder="••••••••"
+                placeholder="Passwort"
                 required
               />
             </div>
@@ -74,22 +80,24 @@ import { useRouter } from 'vue-router'
 
 const router = useRouter()
 
-// ===== HARDCODED LOGIN =====
-const VALID_EMAIL = 'beril@foodtracker.de'
-const VALID_PASSWORD = '123456'
+// ===== DEMO-DATEN =====
+const DEMO_EMAIL = 'benutzer@foodtracker.de'
+const DEMO_PASSWORD = '123456'
 
-const email = ref('')
-const password = ref('')
+// ===== STATE (vorausgefüllt) =====
+const email = ref(DEMO_EMAIL)
+const password = ref(DEMO_PASSWORD)
 const isLoading = ref(false)
 const errorMessage = ref('')
 
+// ===== LOGIN =====
 async function handleLogin() {
   errorMessage.value = ''
   isLoading.value = true
 
   await new Promise((resolve) => setTimeout(resolve, 500))
 
-  if (email.value === VALID_EMAIL && password.value === VALID_PASSWORD) {
+  if (email.value === DEMO_EMAIL && password.value === DEMO_PASSWORD) {
     localStorage.setItem('user', JSON.stringify({ id: 1, email: email.value }))
     localStorage.setItem('userId', '1')
     router.push('/')
@@ -170,6 +178,30 @@ async function handleLogin() {
   font-weight: 700;
 }
 
+/* ===== DEMO-HINWEIS ===== */
+.demo-hint {
+  margin-top: 32px;
+  padding: 12px 16px;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 0.9rem;
+  backdrop-filter: blur(4px);
+}
+
+.demo-tag {
+  background: #42b883;
+  color: white;
+  padding: 2px 10px;
+  border-radius: 12px;
+  font-weight: 700;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
 .login-form-container {
   display: flex;
   justify-content: center;
@@ -209,10 +241,6 @@ async function handleLogin() {
   margin-bottom: 6px;
   color: #333;
   font-size: 0.9rem;
-}
-
-.input-wrapper {
-  position: relative;
 }
 
 .input-wrapper input {
