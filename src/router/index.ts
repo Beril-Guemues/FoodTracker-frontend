@@ -76,27 +76,36 @@ const router = createRouter({
 })
 
 // ===== AUTH GUARD (gefixt – ohne next) =====
-router.beforeEach((to, from) => {
+router.beforeEach((to, from, next) => {
   const isAuthenticated = !!localStorage.getItem('user')
   const hasProfile = !!localStorage.getItem('userProfile')
 
   // 1. Wenn Login-Seite und bereits eingeloggt → Startseite
   if (to.path === '/login' && isAuthenticated) {
-    return '/'
+    next('/')
+    return
   }
 
   // 2. Wenn Seite Auth braucht, aber nicht eingeloggt → Login
   if (to.meta.requiresAuth && !isAuthenticated) {
-    return '/login'
+    next('/login')
+    return
   }
 
-  // 3. Wenn Seite Profil braucht, aber kein Profil → Profil-Seite
-  if (to.meta.requiresProfile && !hasProfile && to.path !== '/profile') {
-    return '/profile'
+  // 3. WENN EINGELOGGT UND KEIN PROFIL → PROFIL-SEITE
+  if (isAuthenticated && !hasProfile && to.path !== '/profile') {
+    next('/profile')
+    return
   }
 
-  // 4. Alles okay → weiter
-  return true
+  // 4. WENN EINGELOGGT, PROFIL VORHANDEN, ABER KEIN ZIEL → ZIEL-SEITE
+  const hasGoal = !!localStorage.getItem('userGoal')
+  if (isAuthenticated && hasProfile && !hasGoal && to.path !== '/goal' && to.path !== '/profile') {
+    next('/goal')
+    return
+  }
+
+  // 5. Alles okay → weiter
+  next()
 })
-
 export default router

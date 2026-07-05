@@ -103,16 +103,16 @@ async function saveProfile() {
       height: profile.height,
       age: profile.age,
       gender: profile.gender,
-      targetWeight: 0,
     })
-
     localStorage.setItem('userProfileId', String(response.data.id))
+    localStorage.setItem('userProfile', JSON.stringify(response.data))
 
     successMessage.value = '✅ Profil erfolgreich gespeichert!'
 
     setTimeout(() => {
-      router.push('/goal')
+      router.push('/goal')  // ← Weiterleitung zu Ziel
     }, 1000)
+
   } catch (error) {
     console.error('Fehler beim Speichern:', error)
     errorMessage.value = '❌ Fehler beim Speichern.'

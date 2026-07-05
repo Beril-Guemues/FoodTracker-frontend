@@ -209,67 +209,42 @@ async function saveGoal() {
     return
   }
 
-  // ===== VALIDIERUNG =====
-  if (currentWeight.value !== null) {
-    const current = currentWeight.value
-    const target = targetWeight.value
-
-    if (mainGoal.value === 'lose' && target >= current) {
-      errorMessage.value = 'Bei "Abnehmen" muss das Ziel-Gewicht niedriger sein als dein aktuelles Gewicht (' + current + ' kg).'
-      return
-    }
-
-    if (mainGoal.value === 'gain' && target <= current) {
-      errorMessage.value = 'Bei "Zunehmen" muss das Ziel-Gewicht höher sein als dein aktuelles Gewicht (' + current + ' kg).'
-      return
-    }
-  }
-
   isLoading.value = true
 
   try {
-    // ===== 1. KOMPLETTES PROFIL LADEN =====
+    // 1. KOMPLETTES PROFIL LADEN
     const profileResponse = await api.get(`/profiles/${profileId}`)
     const fullProfile = profileResponse.data
 
-    // ===== 2. ZIELTYP BESTIMMEN =====
+    // 2. ZIELTYP BESTIMMEN
     let goalType = goalTypeMap[mainGoal.value]
     if (buildMuscle.value === true) {
       goalType = 'muskeln_aufbauen'
     }
 
-    // ===== 3. ZIEL MIT KOMPLETTEM PROFIL SPEICHERN =====
+    // 3. ZIEL MIT KOMPLETTEM PROFIL SPEICHERN
     await api.post('/goals', {
       type: goalType,
-      userProfile: fullProfile, // ← KOMPLETTES Profil!
+      userProfile: fullProfile,
     })
 
-    // ===== 4. EXTRA-DATEN LOKAL SPEICHERN =====
-    localStorage.setItem(
-      'goalExtras',
-      JSON.stringify({
-        mainGoal: mainGoal.value,
-        targetWeight: targetWeight.value,
-        buildMuscle: buildMuscle.value,
-        tempo: tempo.value,
-      })
-    )
-
-    localStorage.setItem(
-      'userGoal',
-      JSON.stringify({
-        mainGoal: mainGoal.value,
-        targetWeight: targetWeight.value,
-        buildMuscle: buildMuscle.value,
-        tempo: tempo.value,
-      })
-    )
+    // 4. ZIEL-DATEN IN LOCALSTORAGE SPEICHERN (NUR EINMAL!)
+    const goalData = {
+      mainGoal: mainGoal.value,
+      targetWeight: targetWeight.value,
+      buildMuscle: buildMuscle.value,
+      tempo: tempo.value,
+    }
+    localStorage.setItem('userGoal', JSON.stringify(goalData))
+    localStorage.setItem('goalExtras', JSON.stringify(goalData)) // Optional
 
     successMessage.value = '✅ Ziel erfolgreich gespeichert!'
 
+    // 5. NACH 1 SEKUNDE ZU NÄHRWERTEN WEITERLEITEN
     setTimeout(() => {
       router.push('/nutrition')
     }, 1000)
+
   } catch (error) {
     console.error('Fehler beim Speichern:', error)
     errorMessage.value = '❌ Fehler beim Speichern.'
