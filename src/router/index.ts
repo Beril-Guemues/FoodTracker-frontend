@@ -75,31 +75,28 @@ const router = createRouter({
   ],
 })
 
-// ===== AUTH GUARD =====
-router.beforeEach((to, from, next) => {
+// ===== AUTH GUARD (gefixt – ohne next) =====
+router.beforeEach((to, from) => {
   const isAuthenticated = !!localStorage.getItem('user')
   const hasProfile = !!localStorage.getItem('userProfile')
 
   // 1. Wenn Login-Seite und bereits eingeloggt → Startseite
   if (to.path === '/login' && isAuthenticated) {
-    next('/')
-    return
+    return '/'
   }
 
   // 2. Wenn Seite Auth braucht, aber nicht eingeloggt → Login
   if (to.meta.requiresAuth && !isAuthenticated) {
-    next('/login')
-    return
+    return '/login'
   }
 
   // 3. Wenn Seite Profil braucht, aber kein Profil → Profil-Seite
   if (to.meta.requiresProfile && !hasProfile && to.path !== '/profile') {
-    next('/profile')
-    return
+    return '/profile'
   }
 
   // 4. Alles okay → weiter
-  next()
+  return true
 })
 
 export default router

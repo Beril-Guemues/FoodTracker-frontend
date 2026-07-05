@@ -2,86 +2,50 @@
   <div class="nutrition-container">
     <h2>Deine Nährwerte</h2>
 
+    <div v-if="errorMessage" class="error-message">
+      {{ errorMessage }}
+    </div>
+
     <div v-if="!profile" class="no-profile">
       <p>Bitte erstelle zuerst dein Profil.</p>
       <router-link to="/profile" class="btn">Zum Profil</router-link>
     </div>
 
+    <div v-else-if="!userGoal" class="no-profile">
+      <p>Bitte lege zuerst dein Ziel fest.</p>
+      <router-link to="/goal" class="btn">Zum Ziel</router-link>
+    </div>
+
     <div v-else>
-      <!-- ===== NÄHRWERT-KARTEN ===== -->
       <div class="nutrition-grid">
-        <!-- KALORIEN -->
         <div class="nutrition-card">
           <span class="value">{{ calorieNeed }}</span>
           <span class="unit">kcal</span>
           <span class="label">Täglicher Kalorienbedarf</span>
         </div>
 
-        <!-- PROTEIN -->
         <div class="nutrition-card">
           <span class="value">{{ proteinNeed }}</span>
           <span class="unit">g</span>
           <span class="label">Täglicher Proteinbedarf</span>
         </div>
 
-        <!-- KOHLENHYDRATE -->
         <div class="nutrition-card">
           <span class="value">{{ carbNeed }}</span>
           <span class="unit">g</span>
           <span class="label">Täglicher Kohlenhydratbedarf</span>
         </div>
 
-        <!-- WASSER -->
         <div class="nutrition-card">
           <span class="value">{{ waterNeed }}</span>
           <span class="unit">L</span>
           <span class="label">Wasserempfehlung</span>
         </div>
 
-        <!-- ZIEL-GEWICHT -->
         <div class="nutrition-card">
-          <span class="value">{{ targetWeight }}</span>
+          <span class="value">{{ targetWeightDisplay }}</span>
           <span class="unit">kg</span>
           <span class="label">Dein Ziel-Gewicht</span>
-        </div>
-      </div>
-
-      <!-- ===== KREISDIAGRAMME ===== -->
-      <div class="chart-section">
-        <h3>Heutiger Fortschritt</h3>
-
-        <div v-if="todayEntries.length === 0" class="no-entries">
-          <p>Heute hast du noch nichts gegessen.</p>
-          <router-link to="/foodentry" class="btn">Jetzt Mahlzeit tracken</router-link>
-        </div>
-
-        <div v-else class="chart-grid">
-          <!-- Kalorien -->
-          <div class="chart-card">
-            <canvas ref="caloriesChartRef"></canvas>
-            <div class="chart-label">
-              <span class="chart-value">{{ todayCalories }} / {{ calorieNeed }} kcal</span>
-              <span class="chart-percent">{{ caloriesPercent }}%</span>
-            </div>
-          </div>
-
-          <!-- Protein -->
-          <div class="chart-card">
-            <canvas ref="proteinChartRef"></canvas>
-            <div class="chart-label">
-              <span class="chart-value">{{ todayProtein }} / {{ proteinNeed }} g</span>
-              <span class="chart-percent">{{ proteinPercent }}%</span>
-            </div>
-          </div>
-
-          <!-- Kohlenhydrate -->
-          <div class="chart-card">
-            <canvas ref="carbsChartRef"></canvas>
-            <div class="chart-label">
-              <span class="chart-value">{{ todayCarbs }} / {{ carbNeed }} g</span>
-              <span class="chart-percent">{{ carbsPercent }}%</span>
-            </div>
-          </div>
         </div>
       </div>
     </div>
@@ -89,240 +53,157 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch, nextTick } from 'vue'
-import { Chart, registerables } from 'chart.js'
+import { ref, computed, onMounted } from 'vue'
 import axios from 'axios'
 import { API_URL } from '@/api/config'
 
-Chart.register(...registerables)
-
 const api = axios.create({ baseURL: API_URL })
 
-// ===== TYPES =====
-interface Product {
-  id: number
-  name: string
-  calories: number
-  protein: number
-  carbs: number
-}
+// ===== STATE =====
+const profile = ref<any>(null)
+const userGoal = ref<any>(null)
+const errorMessage = ref('')
 
-interface FoodEntry {
-  id: number
-  product: Product
-  amount: number
-  date: string
-}
-
-interface UserProfile {
-  id: number
-  weight: number
-  gender: string
-  age: number
-  height: number
-  targetWeight: number
-}
-
-// ===== PROFILE =====
-const profile = ref<UserProfile | null>(null)
-const calorieNeed = ref(0)
-const waterNeed = ref('0')
-
+// ===== PROFIL LADEN =====
 async function loadProfile() {
   const profileId = localStorage.getItem('userProfileId')
-  if (!profileId) return
+  if (!profileId) {
+    errorMessage.value = 'Kein Profil gefunden. Bitte erstelle zuerst ein Profil.'
+    return
+  }
 
   try {
-    const response = await api.get<UserProfile>(`/profiles/${profileId}`)
+    const response = await api.get(`/profiles/${profileId}`)
     profile.value = response.data
-
-    // Kalorien- und Wasserbedarf direkt vom Backend holen
-    const calorieResponse = await api.get<number>(`/profiles/${profileId}/calorie-need`)
-    calorieNeed.value = Math.round(calorieResponse.data)
-
-    const waterResponse = await api.get<number>(`/profiles/${profileId}/water-need`)
-    waterNeed.value = waterResponse.data.toFixed(2)
-  } catch (error) {
-    console.error('Profil konnte nicht geladen werden:', error)
+    errorMessage.value = ''
+  } catch {
+    errorMessage.value = 'Fehler beim Laden des Profils.'
   }
 }
 
-// ===== ZIEL-GEWICHT (jetzt aus Profil, nicht mehr aus Goal-localStorage) =====
-const targetWeight = computed(() => {
-  return profile.value?.targetWeight ?? '—'
-})
-
-// ===== TODAY'S ENTRIES (vom Backend) =====
-const todayEntries = ref<FoodEntry[]>([])
-const todayDate = new Date().toISOString().split('T')[0]
-
-async function loadTodayEntries() {
+// ===== ZIEL LADEN =====
+function loadGoal() {
   try {
-    const response = await api.get<FoodEntry[]>('/foodentries/date', {
-      params: { date: todayDate },
-    })
-    todayEntries.value = response.data
+    const savedGoal = localStorage.getItem('userGoal')
+    if (savedGoal) {
+      userGoal.value = JSON.parse(savedGoal)
+      console.log('✅ userGoal geladen:', userGoal.value)
+    } else {
+      console.log('❌ Kein userGoal in localStorage')
+    }
   } catch (error) {
-    console.error('Einträge konnten nicht geladen werden:', error)
+    console.error('Fehler beim Laden von userGoal:', error)
+    userGoal.value = null
   }
 }
 
-// ===== TODAY TOTALS =====
-const todayCalories = computed(() => {
-  return todayEntries.value.reduce((sum, e) => {
-    return sum + Math.round((e.amount / 100) * e.product.calories)
-  }, 0)
+// ===== ZIEL-GEWICHT ANZEIGE =====
+const targetWeightDisplay = computed(() => {
+  if (userGoal.value && userGoal.value.targetWeight) {
+    return userGoal.value.targetWeight
+  }
+  return '—'
 })
 
-const todayProtein = computed(() => {
-  return todayEntries.value.reduce((sum, e) => {
-    return sum + Math.round((e.amount / 100) * e.product.protein * 10) / 10
-  }, 0)
+// ===== BMR (Grundumsatz) =====
+const baseCalorieNeed = computed(() => {
+  if (!profile.value) return 0
+  const p = profile.value
+  let bmr
+  if (p.gender === 'female') {
+    bmr = 10 * p.weight + 6.25 * p.height - 5 * p.age - 161
+  } else {
+    bmr = 10 * p.weight + 6.25 * p.height - 5 * p.age + 5
+  }
+  return Math.round(bmr * 1.2)
 })
 
-const todayCarbs = computed(() => {
-  return todayEntries.value.reduce((sum, e) => {
-    return sum + Math.round((e.amount / 100) * e.product.carbs * 10) / 10
-  }, 0)
+// ===== KALORIEN-ANPASSUNG (KOMBINATION) =====
+const tempoAdjustment = computed(() => {
+  if (!userGoal.value || !profile.value) return 0
+
+  const mainGoal = userGoal.value.mainGoal
+  const tempo = userGoal.value.tempo
+  const currentWeight = profile.value.weight
+  const targetWeight = userGoal.value.targetWeight
+
+  if (!targetWeight || targetWeight <= 0) return 0
+
+  // 1. Differenz berechnen
+  const weightDiff = targetWeight - currentWeight
+
+  // 2. Tempo-Faktor
+  let tempoFactor = 0
+  if (tempo === 'slow') tempoFactor = 0.5
+  else if (tempo === 'moderate') tempoFactor = 1.0
+  else if (tempo === 'fast') tempoFactor = 1.5
+
+  // 3. Defizit pro kg
+  const baseDeficit = 50
+  const totalDeficit = Math.abs(weightDiff) * baseDeficit * tempoFactor
+
+  // 4. Begrenzung
+  let adjustment = Math.min(Math.round(totalDeficit), 1000)
+
+  // 5. Richtung
+  if (mainGoal === 'lose') {
+    adjustment = -adjustment
+  } else if (mainGoal === 'gain') {
+    adjustment = adjustment
+  }
+
+  console.log('📊 weightDiff:', weightDiff)
+  console.log('📊 tempoFactor:', tempoFactor)
+  console.log('📊 adjustment:', adjustment)
+
+  return adjustment
 })
 
-// ===== PROTEIN / CARB BEDARF (noch lokal, kein Backend-Endpoint dafür vorhanden) =====
+const calorieNeed = computed(() => {
+  const result = baseCalorieNeed.value + tempoAdjustment.value
+  return Math.max(Math.round(result), 1200)
+})
+
+// ===== PROTEIN =====
 const proteinNeed = computed(() => {
   if (!profile.value) return 0
-  return Math.round(profile.value.weight * 1.2)
+  const weight = profile.value.weight
+
+  let factor = 1.2
+  if (userGoal.value?.buildMuscle === true) {
+    factor = 1.6
+  } else if (userGoal.value?.mainGoal === 'lose') {
+    factor = 1.4
+  }
+
+  return Math.round(weight * factor)
 })
 
+// ===== KOHLENHYDRATE =====
 const carbNeed = computed(() => {
-  if (!calorieNeed.value) return 0
-  return Math.round((calorieNeed.value * 0.5) / 4)
+  if (!profile.value) return 0
+  const calories = calorieNeed.value
+
+  let carbRatio = 0.5
+  if (userGoal.value?.mainGoal === 'lose') {
+    carbRatio = 0.40
+  } else if (userGoal.value?.mainGoal === 'gain' && userGoal.value?.buildMuscle === true) {
+    carbRatio = 0.55
+  }
+
+  return Math.round(calories * carbRatio / 4)
 })
 
-// ===== PROZENTE =====
-const caloriesPercent = computed(() => {
-  if (calorieNeed.value === 0) return 0
-  return Math.min(Math.round((todayCalories.value / calorieNeed.value) * 100), 100)
-})
-
-const proteinPercent = computed(() => {
-  if (proteinNeed.value === 0) return 0
-  return Math.min(Math.round((todayProtein.value / proteinNeed.value) * 100), 100)
-})
-
-const carbsPercent = computed(() => {
-  if (carbNeed.value === 0) return 0
-  return Math.min(Math.round((todayCarbs.value / carbNeed.value) * 100), 100)
-})
-
-// ===== CHARTS =====
-const caloriesChartRef = ref<HTMLCanvasElement | null>(null)
-const proteinChartRef = ref<HTMLCanvasElement | null>(null)
-const carbsChartRef = ref<HTMLCanvasElement | null>(null)
-
-let caloriesChart: Chart | null = null
-let proteinChart: Chart | null = null
-let carbsChart: Chart | null = null
-
-function createChart(
-  canvas: HTMLCanvasElement,
-  value: number,
-  max: number,
-  label: string,
-  color: string,
-) {
-  const percent = Math.min((value / max) * 100, 100)
-  const remaining = Math.max(100 - percent, 0)
-
-  return new Chart(canvas, {
-    type: 'doughnut',
-    data: {
-      labels: ['Erreicht', 'Verbleibend'],
-      datasets: [
-        {
-          data: [percent, remaining],
-          backgroundColor: [color, '#eef2f6'],
-          borderWidth: 0,
-        },
-      ],
-    },
-    options: {
-      cutout: '75%',
-      responsive: true,
-      maintainAspectRatio: true,
-      plugins: {
-        legend: { display: false },
-        tooltip: {
-          callbacks: {
-            label: function (context) {
-              if (context.dataIndex === 0) {
-                return `Erreicht: ${Math.round(value)} ${label}`
-              } else {
-                return `Verbleibend: ${Math.round(max - value)} ${label}`
-              }
-            },
-          },
-        },
-      },
-    },
-  })
-}
-
-function initCharts() {
-  if (caloriesChart) {
-    caloriesChart.destroy()
-    caloriesChart = null
-  }
-  if (proteinChart) {
-    proteinChart.destroy()
-    proteinChart = null
-  }
-  if (carbsChart) {
-    carbsChart.destroy()
-    carbsChart = null
-  }
-
-  if (caloriesChartRef.value) {
-    caloriesChart = createChart(
-      caloriesChartRef.value,
-      todayCalories.value,
-      calorieNeed.value,
-      'kcal',
-      '#42b883',
-    )
-  }
-
-  if (proteinChartRef.value) {
-    proteinChart = createChart(
-      proteinChartRef.value,
-      todayProtein.value,
-      proteinNeed.value,
-      'g Protein',
-      '#4a9eff',
-    )
-  }
-
-  if (carbsChartRef.value) {
-    carbsChart = createChart(
-      carbsChartRef.value,
-      todayCarbs.value,
-      carbNeed.value,
-      'g Carbs',
-      '#f59e0b',
-    )
-  }
-}
-
-// ===== WATCH =====
-watch([todayCalories, todayProtein, todayCarbs, calorieNeed, proteinNeed, carbNeed], () => {
-  nextTick(() => initCharts())
+// ===== WASSER =====
+const waterNeed = computed(() => {
+  if (!profile.value) return 0
+  return (profile.value.weight * 0.035).toFixed(2)
 })
 
 // ===== INIT =====
 onMounted(async () => {
   await loadProfile()
-  await loadTodayEntries()
-  setTimeout(() => {
-    initCharts()
-  }, 300)
+  loadGoal()
 })
 </script>
 
@@ -341,7 +222,17 @@ h2 {
   margin-bottom: 40px;
 }
 
-/* ===== NÄHRWERT-KARTEN ===== */
+.error-message {
+  background: #fde8e8;
+  color: #dc3545;
+  padding: 16px 20px;
+  border-radius: 12px;
+  text-align: center;
+  font-size: 1rem;
+  margin-bottom: 20px;
+  border: 1px solid #f5c6cb;
+}
+
 .nutrition-grid {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
@@ -387,61 +278,6 @@ h2 {
   margin-top: 6px;
 }
 
-/* ===== KREISDIAGRAMME ===== */
-.chart-section {
-  max-width: 1000px;
-  margin: 0 auto;
-}
-
-.chart-section h3 {
-  text-align: center;
-  font-size: 1.4rem;
-  font-weight: 600;
-  color: #1a1a2e;
-  margin-bottom: 24px;
-}
-
-.chart-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 24px;
-}
-
-.chart-card {
-  background: white;
-  padding: 20px;
-  border-radius: 16px;
-  text-align: center;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
-  border: 1px solid #eef2f6;
-}
-
-.chart-card canvas {
-  max-width: 180px;
-  max-height: 180px;
-  margin: 0 auto;
-}
-
-.chart-label {
-  margin-top: 12px;
-}
-
-.chart-value {
-  display: block;
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: #1a1a2e;
-}
-
-.chart-percent {
-  display: block;
-  font-size: 1.3rem;
-  font-weight: 700;
-  color: #42b883;
-  margin-top: 2px;
-}
-
-/* ===== KEIN PROFIL ===== */
 .no-profile {
   text-align: center;
   padding: 60px 40px;
@@ -454,20 +290,6 @@ h2 {
 .no-profile p {
   font-size: 1.1rem;
   color: #555;
-  margin-bottom: 16px;
-}
-
-/* ===== KEINE ENTRIES ===== */
-.no-entries {
-  text-align: center;
-  padding: 40px 20px;
-  background: #f8fafc;
-  border-radius: 16px;
-}
-
-.no-entries p {
-  font-size: 1rem;
-  color: #888;
   margin-bottom: 16px;
 }
 
@@ -486,14 +308,9 @@ h2 {
   background: #35a372;
 }
 
-/* ===== RESPONSIVE ===== */
 @media (max-width: 1024px) {
   .nutrition-grid {
     grid-template-columns: repeat(3, 1fr);
-  }
-
-  .chart-grid {
-    grid-template-columns: repeat(2, 1fr);
   }
 }
 
@@ -501,11 +318,6 @@ h2 {
   .nutrition-grid {
     grid-template-columns: repeat(2, 1fr);
   }
-
-  .chart-grid {
-    grid-template-columns: 1fr;
-  }
-
   .nutrition-card .value {
     font-size: 2rem;
   }
@@ -515,22 +327,14 @@ h2 {
   .nutrition-grid {
     grid-template-columns: 1fr;
   }
-
   .nutrition-card {
     padding: 16px;
   }
-
   .nutrition-card .value {
     font-size: 1.8rem;
   }
-
   h2 {
     font-size: 1.4rem;
-  }
-
-  .chart-card canvas {
-    max-width: 140px;
-    max-height: 140px;
   }
 }
 </style>

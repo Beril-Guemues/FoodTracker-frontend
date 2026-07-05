@@ -1,7 +1,7 @@
 <template>
   <div class="progress-container">
     <h2>Dein Fortschritt</h2>
-    <p>Deine Kalorien-, Protein- und Kohlenhydrat-Aufnahme der letzten 7 Tage</p>
+    <p>Deine heutige Kalorien-, Protein- und Kohlenhydrat-Aufnahme.</p>
 
     <!-- ===== FEHLERMELDUNG ===== -->
     <div v-if="errorMessage" class="error-message">
@@ -64,28 +64,23 @@
         </div>
       </div>
 
-      <!-- Liniendiagramm -->
-      <div class="chart-wrapper">
-        <canvas ref="progressChartRef"></canvas>
-      </div>
-
       <!-- Zusammenfassung -->
       <div class="summary">
         <div class="summary-card">
           <span class="summary-value">{{ totalCalories }}</span>
-          <span class="summary-label">Kalorien (gesamt)</span>
+          <span class="summary-label">Kalorien (heute)</span>
         </div>
         <div class="summary-card">
           <span class="summary-value">{{ totalProtein.toFixed(1) }}</span>
-          <span class="summary-label">Protein (gesamt)</span>
+          <span class="summary-label">Protein (heute)</span>
         </div>
         <div class="summary-card">
           <span class="summary-value">{{ totalCarbs.toFixed(1) }}</span>
-          <span class="summary-label">Carbs (gesamt)</span>
+          <span class="summary-label">Carbs (heute)</span>
         </div>
         <div class="summary-card">
-          <span class="summary-value">{{ averageCalories }}</span>
-          <span class="summary-label">Ø Kalorien pro Tag</span>
+          <span class="summary-value">{{ todayCalories.toFixed(0) }}</span>
+          <span class="summary-label">Heutige Kalorien</span>
         </div>
       </div>
     </div>
@@ -118,13 +113,6 @@ interface FoodEntry {
   date: string
 }
 
-interface DailyStat {
-  date: string
-  calories: number
-  protein: number
-  carbs: number
-}
-
 interface UserProfile {
   id: number
   weight: number
@@ -142,12 +130,10 @@ const profile = ref<UserProfile | null>(null)
 const userGoal = ref<any>(null)
 
 // ===== CHART REFS =====
-const progressChartRef = ref<HTMLCanvasElement | null>(null)
 const caloriesDonutRef = ref<HTMLCanvasElement | null>(null)
 const proteinDonutRef = ref<HTMLCanvasElement | null>(null)
 const carbsDonutRef = ref<HTMLCanvasElement | null>(null)
 
-let progressChart: Chart | null = null
 let caloriesDonut: Chart | null = null
 let proteinDonut: Chart | null = null
 let carbsDonut: Chart | null = null
@@ -164,8 +150,7 @@ async function loadProfile() {
     const response = await api.get<UserProfile>(`/profiles/${profileId}`)
     profile.value = response.data
     errorMessage.value = ''
-  } catch (err) {
-    console.error('Profil konnte nicht geladen werden:', err)
+  } catch {
     errorMessage.value = 'Fehler beim Laden des Profils.'
   }
 }
@@ -190,8 +175,7 @@ async function loadEntries() {
   try {
     const response = await api.get<FoodEntry[]>('/foodentries')
     entries.value = response.data
-  } catch (err) {
-    console.error('Einträge konnten nicht geladen werden:', err)
+  } catch {
     errorMessage.value = 'Fehler beim Laden der Einträge.'
   } finally {
     isLoading.value = false
@@ -263,63 +247,24 @@ const carbsPercent = computed(() => {
   return Math.min(Math.round((todayCarbs.value / carbNeed.value) * 100), 100)
 })
 
-// ===== DAILY STATS (letzte 7 Tage) =====
-const dailyStats = computed<DailyStat[]>(() => {
-  const grouped = new Map<string, { calories: number; protein: number; carbs: number }>()
-
-  for (const entry of entries.value) {
-    if (!entry.product || !entry.date) continue
-
-    const factor = entry.amount / 100
-    const calories = factor * entry.product.calories
-    const protein = factor * entry.product.protein
-    const carbs = factor * entry.product.carbs
-
-    const existing = grouped.get(entry.date) || { calories: 0, protein: 0, carbs: 0 }
-    existing.calories += calories
-    existing.protein += protein
-    existing.carbs += carbs
-    grouped.set(entry.date, existing)
-  }
-
-  return Array.from(grouped.entries())
-    .map(([date, values]) => ({
-      date,
-      calories: Math.round(values.calories),
-      protein: Math.round(values.protein * 10) / 10,
-      carbs: Math.round(values.carbs * 10) / 10,
-    }))
-    .sort((a, b) => a.date.localeCompare(b.date))
-    .slice(-7)
-})
-
 // ===== SUMMARY STATS =====
 const totalCalories = computed(() => {
-  return dailyStats.value.reduce((sum, d) => sum + d.calories, 0)
+  return todayEntries.value.reduce((sum, e) => {
+    return sum + (e.amount / 100) * e.product.calories
+  }, 0)
 })
 
 const totalProtein = computed(() => {
-  return dailyStats.value.reduce((sum, d) => sum + d.protein, 0)
+  return todayEntries.value.reduce((sum, e) => {
+    return sum + (e.amount / 100) * e.product.protein
+  }, 0)
 })
 
 const totalCarbs = computed(() => {
-  return dailyStats.value.reduce((sum, d) => sum + d.carbs, 0)
+  return todayEntries.value.reduce((sum, e) => {
+    return sum + (e.amount / 100) * e.product.carbs
+  }, 0)
 })
-
-const averageCalories = computed(() => {
-  if (dailyStats.value.length === 0) return 0
-  return Math.round(totalCalories.value / dailyStats.value.length)
-})
-
-// ===== HELPERS =====
-function formatDate(isoDate: string): string {
-  const date = new Date(isoDate + 'T00:00:00')
-  return date.toLocaleDateString('de-DE', {
-    weekday: 'short',
-    day: '2-digit',
-    month: '2-digit',
-  })
-}
 
 // ===== DONUT CHARTS =====
 function createDonut(canvas: HTMLCanvasElement, value: number, max: number, color: string) {
@@ -391,99 +336,8 @@ function initDonuts() {
   }
 }
 
-// ===== LINE CHART =====
-function createLineChart() {
-  if (!progressChartRef.value || dailyStats.value.length === 0) return
-
-  if (progressChart) {
-    progressChart.destroy()
-    progressChart = null
-  }
-
-  const labels = dailyStats.value.map(d => formatDate(d.date))
-  const caloriesData = dailyStats.value.map(d => d.calories)
-  const proteinData = dailyStats.value.map(d => d.protein)
-  const carbsData = dailyStats.value.map(d => d.carbs)
-
-  progressChart = new Chart(progressChartRef.value, {
-    type: 'line',
-    data: {
-      labels: labels,
-      datasets: [
-        {
-          label: 'Kalorien (kcal)',
-          data: caloriesData,
-          borderColor: '#42b883',
-          backgroundColor: 'rgba(66, 184, 131, 0.1)',
-          fill: true,
-          tension: 0.3,
-          pointBackgroundColor: '#42b883',
-          pointRadius: 4,
-        },
-        {
-          label: 'Protein (g)',
-          data: proteinData,
-          borderColor: '#4a9eff',
-          backgroundColor: 'rgba(74, 158, 255, 0.1)',
-          fill: true,
-          tension: 0.3,
-          pointBackgroundColor: '#4a9eff',
-          pointRadius: 4,
-        },
-        {
-          label: 'Kohlenhydrate (g)',
-          data: carbsData,
-          borderColor: '#f59e0b',
-          backgroundColor: 'rgba(245, 158, 11, 0.1)',
-          fill: true,
-          tension: 0.3,
-          pointBackgroundColor: '#f59e0b',
-          pointRadius: 4,
-        },
-      ],
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: true,
-      plugins: {
-        legend: {
-          position: 'top',
-          labels: {
-            usePointStyle: true,
-            padding: 20,
-          },
-        },
-        tooltip: {
-          callbacks: {
-            label: function (context) {
-              return context.dataset.label + ': ' + context.parsed.y
-            },
-          },
-        },
-      },
-      scales: {
-        y: {
-          beginAtZero: true,
-          grid: {
-            color: 'rgba(0,0,0,0.05)',
-          },
-        },
-        x: {
-          grid: {
-            display: false,
-          },
-        },
-      },
-    },
-  })
-}
-
-// ===== WATCH =====
-watch([todayCalories, todayProtein, todayCarbs, calorieNeed, proteinNeed, carbNeed, dailyStats], () => {
-  nextTick(() => {
-    initDonuts()
-    createLineChart()
-  })
+watch([todayCalories, todayProtein, todayCarbs, calorieNeed, proteinNeed, carbNeed], () => {
+  nextTick(() => initDonuts())
 })
 
 // ===== INIT =====
@@ -493,7 +347,6 @@ onMounted(async () => {
   await loadEntries()
   setTimeout(() => {
     initDonuts()
-    createLineChart()
   }, 300)
 })
 </script>
@@ -592,20 +445,6 @@ h2 {
   color: #42b883;
 }
 
-.chart-wrapper {
-  background: white;
-  padding: 24px;
-  border-radius: 16px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
-  border: 1px solid #eef2f6;
-  margin-bottom: 32px;
-}
-
-.chart-wrapper canvas {
-  width: 100% !important;
-  height: 400px !important;
-}
-
 .summary {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -672,14 +511,6 @@ h2 {
   .summary {
     grid-template-columns: repeat(2, 1fr);
   }
-
-  .chart-wrapper canvas {
-    height: 300px !important;
-  }
-
-  .chart-wrapper {
-    padding: 16px;
-  }
 }
 
 @media (max-width: 480px) {
@@ -698,10 +529,6 @@ h2 {
 
   h2 {
     font-size: 1.6rem;
-  }
-
-  .chart-wrapper canvas {
-    height: 250px !important;
   }
 }
 </style>

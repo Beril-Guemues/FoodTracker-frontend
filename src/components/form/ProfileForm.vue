@@ -25,16 +25,6 @@
       </div>
 
       <div class="form-group">
-        <label>Traumgewicht (kg)</label>
-        <input
-          v-model.number="profile.targetWeight"
-          type="number"
-          placeholder="z.B. 65"
-          required
-        />
-      </div>
-
-      <div class="form-group">
         <label>Geschlecht</label>
         <select v-model="profile.gender" required>
           <option value="">Bitte wählen</option>
@@ -66,7 +56,6 @@ const profile = reactive({
   height: null as number | null,
   age: null as number | null,
   gender: '' as string,
-  targetWeight: null as number | null,
 })
 
 const isLoading = ref(false)
@@ -85,7 +74,6 @@ onMounted(async () => {
     profile.height = data.height
     profile.age = data.age
     profile.gender = data.gender
-    profile.targetWeight = data.targetWeight
     errorMessage.value = ''
   } catch {
     errorMessage.value = 'Profil konnte nicht geladen werden.'
@@ -102,8 +90,7 @@ async function saveProfile() {
     !profile.weight ||
     !profile.height ||
     !profile.age ||
-    !profile.gender ||
-    !profile.targetWeight
+    !profile.gender
   ) {
     errorMessage.value = 'Bitte alle Felder ausfüllen.'
     isLoading.value = false
@@ -116,7 +103,7 @@ async function saveProfile() {
       height: profile.height,
       age: profile.age,
       gender: profile.gender,
-      targetWeight: profile.targetWeight,
+      targetWeight: 0,
     })
 
     localStorage.setItem('userProfileId', String(response.data.id))
@@ -126,7 +113,8 @@ async function saveProfile() {
     setTimeout(() => {
       router.push('/goal')
     }, 1000)
-  } catch {
+  } catch (error) {
+    console.error('Fehler beim Speichern:', error)
     errorMessage.value = '❌ Fehler beim Speichern.'
   } finally {
     isLoading.value = false

@@ -1,9 +1,10 @@
 <template>
-  <div class="Lebensmittel-list-container">
-    <!-- ===== PRODUKTSUCHE ===== -->
-    <div class="form-container">
-      <h3>Lebensmittel suchen</h3>
+  <div class="product-list-container">
+    <h2>Lebensmittel suchen</h2>
+    <p>Suche in der OpenFoodFacts-Datenbank.</p>
 
+    <!-- ===== SUCHLEISTE ===== -->
+    <div class="search-section">
       <div class="search-group">
         <input
           v-model="searchQuery"
@@ -11,99 +12,104 @@
           placeholder="z.B. Banane"
           @input="searchProducts"
         />
-        <button @click="searchProducts" class="btn-search" :disabled="isSearching">
-          {{ isSearching ? 'Suche...' : 'Suchen' }}
-        </button>
+        <button @click="searchProducts" class="btn-search">🔍 Suchen</button>
       </div>
 
-      <!-- Suchergebnisse (eigene Datenbank) -->
+      <!-- ===== SUCHEIGENISSE ===== -->
       <div v-if="searchResults.length > 0" class="search-results">
-        <p><strong>Ergebnisse aus deiner Datenbank:</strong></p>
+        <h3>Suchergebnisse</h3>
         <div
           v-for="product in searchResults"
-          :key="product.id"
+          :key="product.code"
           class="result-item"
           @click="selectProduct(product)"
         >
-          <span class="product-name">{{ product.name }}</span>
-          <span class="product-calories">{{ product.calories }} kcal / 100g</span>
+          <div class="result-info">
+            <span class="product-name">{{ product.product_name || 'Unbekannt' }}</span>
+            <span class="product-calories" v-if="product.nutriments">
+              {{ Math.round(product.nutriments['energy-kcal_100g'] || 0) }} kcal / 100g
+            </span>
+            <span class="product-detail" v-if="product.nutriments">
+              Protein: {{ (product.nutriments['proteins_100g'] || 0).toFixed(1) }}g
+            </span>
+            <span class="product-detail" v-if="product.nutriments">
+              Carbs: {{ (product.nutriments['carbohydrates_100g'] || 0).toFixed(1) }}g
+            </span>
+          </div>
+          <span class="select-hint">👆 Klicken zum Hinzufügen</span>
         </div>
       </div>
 
-      <!-- Keine Ergebnisse → OpenFoodFacts -->
-      <div
-        v-if="searchQuery && searchResults.length === 0 && !isSearching && !offResults.length"
-        class="no-results"
-      >
-        <p>Kein Lebensmittel in deiner Datenbank gefunden.</p>
-        <button @click="searchOpenFoodFacts" class="btn-off">In OpenFoodFacts suchen</button>
-      </div>
-
-      <!-- OpenFoodFacts Ergebnisse -->
-      <div v-if="offResults.length > 0" class="search-results">
-        <p><strong>Ergebnisse aus OpenFoodFacts:</strong></p>
-        <div
-          v-for="result in offResults"
-          :key="result.code"
-          class="result-item"
-          @click="selectOffProduct(result)"
-        >
-          <span class="product-name">{{ result.product_name }}</span>
-          <span class="product-calories" v-if="result.nutriments">
-            {{ Math.round(result.nutriments['energy-kcal_100g'] ?? 0) }} kcal / 100g
-          </span>
-        </div>
+      <div v-if="searchQuery && searchResults.length === 0 && !isSearching" class="no-results">
+        <p>Kein Produkt gefunden.</p>
       </div>
     </div>
 
     <!-- ===== AUSGEWÄHLTES PRODUKT ===== -->
     <div v-if="selectedProduct" class="selected-product">
-      <h3>Lebensmittel hinzufügen</h3>
-
-      <div class="form-group">
-        <label>Name des Lebensmittels</label>
-        <input v-model="selectedProduct.name" type="text" />
+      <h3>Produkt hinzufügen</h3>
+      <div class="product-info">
+        <span class="product-name">{{ selectedProduct.product_name }}</span>
+        <span class="product-calories" v-if="selectedProduct.nutriments">
+          {{ Math.round(selectedProduct.nutriments['energy-kcal_100g'] || 0) }} kcal / 100g
+        </span>
+        <span class="product-nutrition" v-if="selectedProduct.nutriments">
+          Protein: {{ (selectedProduct.nutriments['proteins_100g'] || 0).toFixed(1) }}g |
+          Carbs: {{ (selectedProduct.nutriments['carbohydrates_100g'] || 0).toFixed(1) }}g
+        </span>
       </div>
 
-      <div class="form-row">
-        <div class="form-group">
-          <label>Kalorien (kcal)</label>
-          <input v-model.number="selectedProduct.calories" type="number" />
+      <div class="entry-form">
+        <div class="form-row">
+          <div class="form-group">
+            <label>Menge (g)</label>
+            <input v-model.number="amount" type="number" placeholder="z.B. 150" min="1" required />
+          </div>
+          <div class="form-group">
+            <label>Datum</label>
+            <input v-model="date" type="date" required />
+          </div>
         </div>
 
-        <div class="form-group">
-          <label>Protein (g)</label>
-          <input v-model.number="selectedProduct.protein" type="number" step="0.1" />
+        <div class="calculated-values">
+          <span>{{ calculatedCalories }} kcal</span>
+          <span>{{ calculatedProtein }} g Protein</span>
+          <span>{{ calculatedCarbs }} g Carbs</span>
         </div>
 
-        <div class="form-group">
-          <label>Kohlenhydrate (g)</label>
-          <input v-model.number="selectedProduct.carbs" type="number" step="0.1" />
+        <div class="button-row">
+          <button @click="saveEntry" :disabled="!amount || amount <= 0" class="btn-track">
+            Eintrag speichern
+          </button>
+          <button @click="cancelSelection" class="btn-cancel">Abbrechen</button>
         </div>
       </div>
-
-      <button @click="saveProduct" class="btn-save">In Datenbank speichern</button>
-      <button @click="cancelSelection" class="btn-cancel">Abbrechen</button>
     </div>
 
-    <!-- ===== MEINE PRODUKTE ===== -->
-    <h2>Meine Lebensmittel</h2>
+    <!-- ===== HEUTIGE EINTRÄGE ===== -->
+    <div class="today-entries">
+      <h3>Heutige Einträge</h3>
 
-    <div v-if="isLoading" class="hint">Lade Lebensmittel...</div>
+      <div v-if="todayEntries.length === 0" class="empty-state">
+        <p>Noch keine Einträge für heute.</p>
+      </div>
 
-    <ul v-if="!isLoading && products.length > 0">
-      <li v-for="product in products" :key="product.id">
-        <strong>{{ product.name }}</strong>
-        <span>{{ product.calories }} kcal</span>
-        <span>Protein: {{ product.protein }}g</span>
-        <span>Carbs: {{ product.carbs }}g</span>
-        <button @click="deleteProduct(product.id)" class="btn-delete">X</button>
-      </li>
-    </ul>
+      <div v-else>
+        <div v-for="entry in todayEntries" :key="entry.id" class="entry-item">
+          <span class="entry-name">{{ entry.product.name }}</span>
+          <span class="entry-amount">{{ entry.amount }} g</span>
+          <span class="entry-calories">{{ calculateEntryCalories(entry) }} kcal</span>
+          <button @click="deleteEntry(entry.id)" class="btn-delete">✕</button>
+        </div>
 
-    <p v-if="!isLoading && products.length === 0" class="empty-message">
-      Keine Lebensmittel gespeichert.
-    </p>
+        <div class="daily-total">
+          <span>📊 Heute insgesamt:</span>
+          <span>{{ dailyTotalCalories }} kcal</span>
+          <span>{{ dailyTotalProtein }} g Protein</span>
+          <span>{{ dailyTotalCarbs }} g Carbs</span>
+        </div>
+      </div>
+    </div>
 
     <p v-if="errorMessage" class="error">{{ errorMessage }}</p>
     <p v-if="successMessage" class="success">{{ successMessage }}</p>
@@ -111,10 +117,22 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
+import axios from 'axios'
+import { API_URL } from '@/api/config'
 
-// ===== API =====
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080'
+const api = axios.create({ baseURL: API_URL })
+
+// ===== TYPES =====
+interface OffProduct {
+  code: string
+  product_name: string
+  nutriments?: {
+    'energy-kcal_100g'?: number
+    'proteins_100g'?: number
+    'carbohydrates_100g'?: number
+  }
+}
 
 interface Product {
   id: number
@@ -124,198 +142,220 @@ interface Product {
   carbs: number
 }
 
-interface OffProduct {
-  code: string
-  product_name: string
-  nutriments?: {
-    'energy-kcal_100g'?: number
-    proteins_100g?: number
-    carbohydrates_100g?: number
-  }
+interface FoodEntry {
+  id: number
+  product: Product
+  amount: number
+  date: string
 }
 
 // ===== STATE =====
-const products = ref<Product[]>([])
 const searchQuery = ref('')
-const searchResults = ref<Product[]>([])
-const offResults = ref<OffProduct[]>([])
-const selectedProduct = ref<Product | null>(null)
-const isLoading = ref(false)
+const searchResults = ref<OffProduct[]>([])
 const isSearching = ref(false)
 const errorMessage = ref('')
 const successMessage = ref('')
 
-// ===== PRODUKTE LADEN =====
-async function loadProducts() {
-  isLoading.value = true
-  errorMessage.value = ''
+const selectedProduct = ref<OffProduct | null>(null)
+const amount = ref<number | null>(null)
+const date = ref<string>(new Date().toISOString().split('T')[0] ?? '')
+const todayEntries = ref<FoodEntry[]>([])
 
-  try {
-    const response = await fetch(`${API_URL}/products`)
-    if (!response.ok) throw new Error('Fehler beim Laden')
-    products.value = await response.json()
-  } catch {
-    errorMessage.value = 'Lebensmittel konnten nicht geladen werden.'
-    products.value = []
-  } finally {
-    isLoading.value = false
-  }
-}
-
-// ===== PRODUKTE SUCHEN (eigene DB) =====
+// ===== OPENFOODFACTS SUCHEN =====
 async function searchProducts() {
   if (!searchQuery.value.trim()) {
     searchResults.value = []
-    offResults.value = []
     return
   }
 
   isSearching.value = true
-  offResults.value = []
-  errorMessage.value = ''
 
   try {
-    const response = await fetch(
-      `${API_URL}/products/search?q=${encodeURIComponent(searchQuery.value)}`,
-    )
-    if (!response.ok) throw new Error('Suche fehlgeschlagen')
-    searchResults.value = await response.json()
+    const response = await api.get('/api/proxy/openfoodfacts', {
+      params: { query: searchQuery.value }
+    })
+
+    const data = response.data
+    searchResults.value = data.products?.filter(
+      (p: OffProduct) => p.product_name && p.nutriments
+    ) || []
   } catch {
     searchResults.value = []
-  } finally {
-    isSearching.value = false
-  }
-}
-
-// ===== OPENFOODFACTS SUCHEN =====
-async function searchOpenFoodFacts() {
-  if (!searchQuery.value.trim()) return
-
-  isSearching.value = true
-
-  try {
-    const response = await fetch(
-      `https://de.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(searchQuery.value)}&search_simple=1&action=process&json=1&page_size=5`,
-    )
-    const data = await response.json()
-    offResults.value = data.products.filter((p: OffProduct) => p.product_name && p.nutriments)
-  } catch {
-    errorMessage.value = 'OpenFoodFacts-Suche fehlgeschlagen.'
-    offResults.value = []
   } finally {
     isSearching.value = false
   }
 }
 
 // ===== PRODUKT AUSWÄHLEN =====
-function selectProduct(product: Product) {
-  selectedProduct.value = { ...product }
-  searchResults.value = []
-  searchQuery.value = ''
-}
-
-function selectOffProduct(result: OffProduct) {
-  selectedProduct.value = {
-    id: Date.now(),
-    name: result.product_name || '',
-    calories: Math.round(result.nutriments?.['energy-kcal_100g'] || 0),
-    protein: Math.round((result.nutriments?.['proteins_100g'] || 0) * 10) / 10,
-    carbs: Math.round((result.nutriments?.['carbohydrates_100g'] || 0) * 10) / 10,
-  }
-  offResults.value = []
-  searchQuery.value = ''
-}
-
-// ===== PRODUKT SPEICHERN =====
-async function saveProduct() {
-  if (!selectedProduct.value || !selectedProduct.value.name.trim()) {
-    errorMessage.value = 'Bitte einen Namen eingeben.'
-    return
-  }
-
-  isLoading.value = true
+function selectProduct(product: OffProduct) {
+  console.log('🟢 Produkt ausgewählt:', product.product_name)
+  selectedProduct.value = product
+  amount.value = null
   errorMessage.value = ''
   successMessage.value = ''
-
-  try {
-    const response = await fetch(`${API_URL}/products`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        name: selectedProduct.value.name.trim(),
-        calories: selectedProduct.value.calories || 0,
-        protein: selectedProduct.value.protein || 0,
-        carbs: selectedProduct.value.carbs || 0,
-      }),
-    })
-
-    if (!response.ok) throw new Error('Fehler beim Speichern')
-
-    successMessage.value = 'Lebensmittel gespeichert!'
-    selectedProduct.value = null
-    await loadProducts()
-
-    setTimeout(() => {
-      successMessage.value = ''
-    }, 2000)
-  } catch {
-    errorMessage.value = 'Fehler beim Speichern.'
-  } finally {
-    isLoading.value = false
-  }
-}
-
-// ===== PRODUKT LÖSCHEN =====
-async function deleteProduct(id: number) {
-  if (!confirm('Lebensmittel wirklich löschen?')) return
-
-  isLoading.value = true
-
-  try {
-    const response = await fetch(`${API_URL}/products/${id}`, {
-      method: 'DELETE',
-    })
-    if (!response.ok) throw new Error('Fehler beim Löschen')
-    await loadProducts()
-  } catch {
-    errorMessage.value = 'Fehler beim Löschen.'
-  } finally {
-    isLoading.value = false
-  }
+  searchResults.value = []
+  searchQuery.value = ''
 }
 
 // ===== ABBRECHEN =====
 function cancelSelection() {
   selectedProduct.value = null
-  offResults.value = []
-  searchResults.value = []
-  searchQuery.value = ''
+  amount.value = null
+  errorMessage.value = ''
+  successMessage.value = ''
 }
+
+// ===== BERECHNUNGEN =====
+const calculatedCalories = computed(() => {
+  if (!selectedProduct.value || !amount.value) return 0
+  const calories = selectedProduct.value.nutriments?.['energy-kcal_100g'] || 0
+  return Math.round((amount.value / 100) * calories)
+})
+
+const calculatedProtein = computed(() => {
+  if (!selectedProduct.value || !amount.value) return 0
+  const protein = selectedProduct.value.nutriments?.['proteins_100g'] || 0
+  return Math.round((amount.value / 100) * protein * 10) / 10
+})
+
+const calculatedCarbs = computed(() => {
+  if (!selectedProduct.value || !amount.value) return 0
+  const carbs = selectedProduct.value.nutriments?.['carbohydrates_100g'] || 0
+  return Math.round((amount.value / 100) * carbs * 10) / 10
+})
+
+// ===== EINTRÄGE LADEN =====
+async function loadEntriesForDate() {
+  try {
+    const response = await api.get<FoodEntry[]>('/foodentries/date', {
+      params: { date: date.value },
+    })
+    todayEntries.value = response.data
+  } catch {
+    errorMessage.value = 'Einträge konnten nicht geladen werden.'
+  }
+}
+
+async function saveEntry() {
+  console.log('🟢 saveEntry() wurde aufgerufen!')
+  errorMessage.value = ''
+  successMessage.value = ''
+
+  if (!selectedProduct.value || !amount.value || amount.value <= 0) {
+    errorMessage.value = 'Bitte Menge angeben.'
+    return
+  }
+
+  try {
+    // 1. Produkt speichern
+    const productData = {
+      name: selectedProduct.value.product_name || '',
+      calories: Math.round(selectedProduct.value.nutriments?.['energy-kcal_100g'] || 0),
+      protein: Math.round((selectedProduct.value.nutriments?.['proteins_100g'] || 0) * 10) / 10,
+      carbs: Math.round((selectedProduct.value.nutriments?.['carbohydrates_100g'] || 0) * 10) / 10,
+    }
+    console.log('📤 Sende Produkt:', JSON.stringify(productData, null, 2))
+
+    const productResponse = await api.post('/products', productData)
+    const savedProduct = productResponse.data
+    console.log('✅ Produkt gespeichert:', savedProduct)
+
+    // 2. FoodEntry speichern (KOMPLETTES Produkt!)
+    const entryData = {
+      product: savedProduct,  // ← KOMPLETTES Produkt!
+      amount: amount.value,
+      date: date.value,
+    }
+    console.log('📤 Sende FoodEntry:', JSON.stringify(entryData, null, 2))
+
+    await api.post('/foodentries', entryData)
+
+    successMessage.value = '✅ Eintrag erfolgreich gespeichert!'
+    selectedProduct.value = null
+    amount.value = null
+
+    await loadEntriesForDate()
+
+    setTimeout(() => {
+      successMessage.value = ''
+    }, 2000)
+  } catch (error: any) {
+    console.error('❌ Fehler:', error.response?.data || error.message)
+    console.error('❌ Status:', error.response?.status)
+    errorMessage.value = '❌ Eintrag konnte nicht gespeichert werden.'
+  }
+}
+
+// ===== EINTRAG LÖSCHEN =====
+async function deleteEntry(id: number) {
+  try {
+    await api.delete(`/foodentries/${id}`)
+    await loadEntriesForDate()
+  } catch {
+    errorMessage.value = 'Eintrag konnte nicht gelöscht werden.'
+  }
+}
+
+// ===== HELPER =====
+function calculateEntryCalories(entry: FoodEntry): number {
+  return Math.round((entry.amount / 100) * entry.product.calories)
+}
+
+// ===== TAGES-TOTALS =====
+const dailyTotalCalories = computed(() => {
+  return todayEntries.value.reduce((sum, e) => {
+    return sum + Math.round((e.amount / 100) * e.product.calories)
+  }, 0)
+})
+
+const dailyTotalProtein = computed(() => {
+  return todayEntries.value.reduce((sum, e) => {
+    return sum + Math.round((e.amount / 100) * e.product.protein * 10) / 10
+  }, 0)
+})
+
+const dailyTotalCarbs = computed(() => {
+  return todayEntries.value.reduce((sum, e) => {
+    return sum + Math.round((e.amount / 100) * e.product.carbs * 10) / 10
+  }, 0)
+})
+
+// ===== WATCH =====
+watch(date, () => {
+  loadEntriesForDate()
+})
 
 // ===== INIT =====
 onMounted(() => {
-  loadProducts()
+  loadEntriesForDate()
 })
 </script>
 
 <style scoped>
-.Lebensmittel-list-container {
-  max-width: 800px;
+.product-list-container {
+  max-width: 900px;
   margin: 0 auto;
   padding: 20px;
 }
 
-.form-container {
-  background: #f8fafc;
-  border: 1px solid #eef2f6;
-  border-radius: 12px;
-  padding: 24px;
-  margin-bottom: 32px;
+h2 {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #1a1a2e;
+  margin-bottom: 4px;
 }
 
-.form-container h3 {
-  margin-bottom: 16px;
-  color: var(--color-heading);
+.product-list-container > p {
+  color: #888;
+  margin-bottom: 24px;
+}
+
+.search-section {
+  background: #f8fafc;
+  border-radius: 12px;
+  padding: 20px;
+  border: 1px solid #eef2f6;
+  margin-bottom: 24px;
 }
 
 .search-group {
@@ -333,48 +373,33 @@ onMounted(() => {
 
 .search-group input:focus {
   outline: none;
-  border-color: var(--color-primary);
+  border-color: #42b883;
 }
 
 .btn-search {
-  padding: 10px 24px;
-  background: var(--color-primary);
+  padding: 10px 20px;
+  background: #42b883;
   color: white;
   border: none;
   border-radius: 8px;
-  font-weight: 600;
   cursor: pointer;
-  transition: background 0.2s;
+  font-weight: 600;
 }
 
 .btn-search:hover {
-  background: var(--color-primary-hover);
-}
-
-.btn-search:disabled {
-  background: #a0a0a0;
-  cursor: not-allowed;
-}
-
-.btn-off {
-  padding: 8px 20px;
-  background: #000000;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  font-weight: 600;
-  margin-top: 8px;
-}
-
-.btn-off:hover {
-  background: #333333;
+  background: #35a372;
 }
 
 .search-results {
   margin-top: 12px;
-  max-height: 200px;
+  max-height: 300px;
   overflow-y: auto;
+}
+
+.search-results h3 {
+  margin-bottom: 8px;
+  font-size: 1.1rem;
+  color: #1a1a2e;
 }
 
 .result-item {
@@ -383,191 +408,266 @@ onMounted(() => {
   border: 1px solid #eef2f6;
   border-radius: 8px;
   margin-bottom: 6px;
-  cursor: pointer;
   display: flex;
   justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  cursor: pointer;
   transition: all 0.2s;
 }
 
 .result-item:hover {
-  border-color: var(--color-primary);
+  border-color: #42b883;
   background: #f0faf5;
+}
+
+.result-info {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
 }
 
 .product-name {
   font-weight: 600;
+  min-width: 100px;
 }
 
 .product-calories {
+  color: #42b883;
+  font-weight: 600;
+}
+
+.product-detail {
   color: #888;
   font-size: 0.9rem;
 }
 
+.select-hint {
+  color: #888;
+  font-size: 0.8rem;
+  font-style: italic;
+}
+
 .no-results {
   text-align: center;
-  padding: 12px;
+  padding: 16px;
   color: #888;
 }
 
 .selected-product {
   background: #e8f5ef;
-  border: 2px solid var(--color-primary);
+  border: 2px solid #42b883;
   border-radius: 12px;
   padding: 20px;
   margin-bottom: 24px;
 }
 
 .selected-product h3 {
-  margin-bottom: 16px;
-  color: var(--color-heading);
-}
-
-.form-group {
   margin-bottom: 12px;
+  color: #1a1a2e;
 }
 
-.form-group label {
-  display: block;
-  font-weight: 600;
+.product-info {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 16px;
+  font-size: 1.1rem;
+}
+
+.product-nutrition {
+  color: #888;
   font-size: 0.9rem;
-  color: #333;
-  margin-bottom: 4px;
 }
 
-.form-group input {
-  width: 100%;
-  padding: 10px 14px;
-  border: 2px solid #e0e0e0;
-  border-radius: 8px;
-  font-size: 1rem;
-  box-sizing: border-box;
-}
-
-.form-group input:focus {
-  outline: none;
-  border-color: var(--color-primary);
+.entry-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
 .form-row {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-columns: 1fr 1fr;
   gap: 12px;
 }
 
-.btn-save {
-  width: 100%;
-  padding: 12px;
-  background: var(--color-primary);
+.form-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.form-group label {
+  font-weight: 600;
+  font-size: 0.9rem;
+  margin-bottom: 4px;
+}
+
+.form-group input {
+  padding: 10px 14px;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  font-size: 1rem;
+}
+
+.form-group input:focus {
+  outline: none;
+  border-color: #42b883;
+}
+
+.calculated-values {
+  display: flex;
+  gap: 20px;
+  padding: 10px 0;
+  font-weight: 600;
+  color: #1a1a2e;
+}
+
+.button-row {
+  display: flex;
+  gap: 12px;
+}
+
+.btn-track {
+  padding: 12px 24px;
+  background: #218838;
   color: white;
   border: none;
   border-radius: 8px;
   font-size: 1rem;
   font-weight: 600;
   cursor: pointer;
-  transition: background 0.2s;
-  margin-top: 8px;
 }
 
-.btn-save:hover {
-  background: var(--color-primary-hover);
+.btn-track:hover {
+  background: #1e7e34;
+}
+
+.btn-track:disabled {
+  background: #a0d9c1;
+  cursor: not-allowed;
 }
 
 .btn-cancel {
-  width: 100%;
-  padding: 10px;
-  background: #000000;
+  padding: 12px 24px;
+  background: #6c757d;
   color: white;
   border: none;
   border-radius: 8px;
   font-size: 1rem;
   font-weight: 600;
   cursor: pointer;
-  transition: background 0.2s;
-  margin-top: 6px;
 }
 
 .btn-cancel:hover {
-  background: #333333;
+  background: #5a6268;
 }
 
-ul {
-  list-style: none;
-  padding: 0;
-}
-
-li {
+.today-entries {
   background: white;
+  border-radius: 12px;
+  padding: 20px;
   border: 1px solid #eef2f6;
-  border-radius: 8px;
-  padding: 12px 16px;
-  margin-bottom: 8px;
+  margin-top: 24px;
+}
+
+.today-entries h3 {
+  margin-bottom: 16px;
+  color: #1a1a2e;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 20px;
+  color: #888;
+}
+
+.entry-item {
   display: flex;
   align-items: center;
-  gap: 16px;
-  flex-wrap: wrap;
+  gap: 12px;
+  padding: 10px 14px;
+  background: #f8fafc;
+  border-radius: 8px;
+  margin-bottom: 6px;
 }
 
-li strong {
+.entry-name {
   flex: 1;
-  min-width: 100px;
+  font-weight: 600;
 }
 
-li span {
-  color: #555;
-  font-size: 0.9rem;
+.entry-amount {
+  color: #888;
+}
+
+.entry-calories {
+  font-weight: 600;
+  color: #42b883;
 }
 
 .btn-delete {
-  background: #000000;
+  background: #dc3545;
   color: white;
   border: none;
-  border-radius: 6px;
-  padding: 4px 12px;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
   cursor: pointer;
-  font-size: 0.8rem;
+  font-size: 12px;
 }
 
 .btn-delete:hover {
-  background: #333333;
+  background: #c82333;
 }
 
-.empty-message {
-  text-align: center;
-  color: #888;
-  padding: 40px 0;
-}
-
-.hint {
-  text-align: center;
-  color: #888;
-  padding: 20px 0;
+.daily-total {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 2px solid #eef2f6;
+  display: flex;
+  gap: 20px;
+  font-weight: 600;
+  color: #1a1a2e;
+  flex-wrap: wrap;
 }
 
 .success {
   color: #28a745;
   text-align: center;
-  margin-top: 8px;
+  margin: 12px 0;
 }
 
 .error {
   color: #dc3545;
   text-align: center;
-  margin-top: 8px;
+  margin: 12px 0;
 }
 
-@media (max-width: 600px) {
-  .form-row {
-    grid-template-columns: 1fr;
-  }
-
+@media (max-width: 640px) {
   .search-group {
     flex-direction: column;
   }
 
-  li {
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+
+  .result-item {
     flex-direction: column;
     align-items: flex-start;
+  }
+
+  .daily-total {
+    flex-direction: column;
     gap: 4px;
+  }
+
+  .button-row {
+    flex-direction: column;
   }
 }
 </style>
